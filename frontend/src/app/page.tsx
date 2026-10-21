@@ -21,6 +21,7 @@ export default function TerminalHome() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [overviewData, setOverviewData] = useState<MarketOverviewData | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   // Poll overview every 15 seconds
   useEffect(() => {
@@ -59,14 +60,21 @@ export default function TerminalHome() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onSelectSymbol={handleSelectSymbol}
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
       />
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Navigation Sidebar */}
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        {/* Navigation Sidebar (Desktop + Mobile Drawer + Bottom Nav) */}
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          mobileMenuOpen={mobileMenuOpen}
+          setMobileMenuOpen={setMobileMenuOpen}
+        />
 
-        {/* Main Content Workspace */}
-        <main className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Main Content Workspace (With Mobile Safe Area Padding) */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 lg:pb-6 space-y-6">
           {activeTab === 'overview' && (
             <MarketOverviewView
               data={overviewData}

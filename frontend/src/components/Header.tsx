@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Search, Sun, Moon, ShieldCheck, Activity, Clock } from 'lucide-react';
+import { Search, Sun, Moon, ShieldCheck, Activity, Clock, Menu, X } from 'lucide-react';
 
 interface HeaderProps {
   marketStatus: string;
@@ -11,6 +11,8 @@ interface HeaderProps {
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   onSelectSymbol: (s: string) => void;
+  mobileMenuOpen?: boolean;
+  setMobileMenuOpen?: (open: boolean) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,38 +22,51 @@ export const Header: React.FC<HeaderProps> = ({
   setTheme,
   searchQuery,
   setSearchQuery,
-  onSelectSymbol
+  onSelectSymbol,
+  mobileMenuOpen,
+  setMobileMenuOpen
 }) => {
   const quickSymbols = ['NIFTY50', 'BANKNIFTY', 'RELIANCE', 'TCS', 'HDFCBANK', 'INFY'];
 
   return (
-    <header className="h-16 border-b border-terminal-border bg-terminal-surface/90 backdrop-blur px-6 flex items-center justify-between sticky top-0 z-50">
+    <header className="h-16 border-b border-terminal-border bg-terminal-surface/90 backdrop-blur px-4 md:px-6 flex items-center justify-between sticky top-0 z-50">
       {/* Brand & Market Hours Badge */}
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-3 md:space-x-4">
+        {/* Mobile menu toggle */}
+        {setMobileMenuOpen && (
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="lg:hidden p-2 rounded-lg bg-terminal-dark border border-terminal-border text-gray-400 hover:text-white transition-colors"
+            aria-label="Toggle Navigation"
+          >
+            {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+          </button>
+        )}
+
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20">
+          <div className="w-8 h-8 rounded bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20 shrink-0">
             भ
           </div>
           <div>
-            <h1 className="font-bold text-base tracking-wide flex items-center gap-2">
-              BHARAT MARKET INTEL
-              <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono border border-blue-500/20">
-                PRO AI
+            <h1 className="font-bold text-xs sm:text-base tracking-wide flex items-center gap-1.5 sm:gap-2">
+              BHARAT MARKET
+              <span className="text-[9px] sm:text-[10px] uppercase px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono border border-blue-500/20">
+                AI
               </span>
             </h1>
           </div>
         </div>
 
         {/* Market Status Badge */}
-        <div className="hidden md:flex items-center space-x-2 bg-terminal-dark/80 px-2.5 py-1 rounded border border-terminal-border text-xs font-mono">
+        <div className="hidden sm:flex items-center space-x-2 bg-terminal-dark/80 px-2 py-1 rounded border border-terminal-border text-[11px] font-mono">
           <span
             className={`w-2 h-2 rounded-full ${
               isMarketOpen ? 'bg-terminal-green animate-pulse' : 'bg-amber-400'
             }`}
           />
-          <span className="text-gray-400">NSE/BSE:</span>
+          <span className="text-gray-400">NSE:</span>
           <span className={isMarketOpen ? 'text-terminal-green font-semibold' : 'text-amber-400 font-semibold'}>
-            {marketStatus} (09:15-15:30 IST)
+            {marketStatus}
           </span>
         </div>
       </div>
