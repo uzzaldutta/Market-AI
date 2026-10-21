@@ -1,0 +1,241 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { fetchOptionChain, fetchStrategyPayoff } from '../lib/api';
+import { OptionChainData, StrategyPayoffData } from '../types/market';
+import { Layers, Zap, Calculator, AlertTriangle, ArrowRight } from 'lucide-react';
+
+interface Props {
+  symbol: string;
+}
+
+export const OptionsAnalyticsView: React.FC<Props> = ({ symbol }) => {
+  const [chain, setChain] = useState<OptionChainData | null>(null);
+  const [selectedExpiry, setSelectedExpiry] = useState<string>('');
+  const [strategy, setStrategy] = useState<string>('BULL_CALL_SPREAD');
+  const [payoff, setPayoff] = useState<StrategyPayoffData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadChain() {
+      setLoading(true);
+      try {
+        const res = await fetchOptionChain(symbol, selectedExpiry || undefined);
+        if (isMounted) {
+          setChain(res);
+          if (!selectedExpiry && res.expiry_dates?.length) {
+            setSelectedExpiry(res.selected_expiry);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    loadChain();
+    return () => { isMounted = false; };
+  }, [symbol, selectedExpiry]);
+
+  useEffect(() => {
+    if (!chain) return;
+    const spot = chain.underlying_price;
+    const step = symbol.includes('NIFTY') ? 50 : 20;
+
+    let legs = [];
+    if (strategy === 'BULL_CALL_SPREAD') {
+      legs = [
+        { type: 'CE', side: 'BUY', strike: spot, premium: 160.0, qty: 1 },
+        { type: 'CE', side: 'SELL', strike: spot + (step * 4), premium: 45.0, qty: 1 }
+      ];
+    } else if (strategy === 'BEAR_PUT_SPREAD') {
+      legs = [
+        { type: 'PE', side: 'BUY', strike: spot, premium: 155.0, qty: 1 },
+        { type: 'PE', side: 'SELL', strike: spot - (step * 4), premium: 42.0, qty: 1 }
+      ];
+    } else {
+      // Long Straddle
+      legs = [
+        { type: 'CE', side: 'BUY', strike: spot, premium: 160.0, qty: 1 },
+        { type: 'PE', side: 'BUY', strike: spot, premium: 155.0, qty: 1 }
+      ];
+    }
+
+    fetchStrategyPayoff({
+      spot,
+      strategy_name: strategy.replace(/_/g, ' '),
+      legs,
+      lot_size: chain.lot_size
+    }).then(setPayoff).catch(console.error);
+  }, [chain, strategy]);
+
+  if (loading && !chain) {
+    return (
+      <div className="p-8 text-center text-gray-500 font-mono animate-pulse">
+        Calculating Derivatives Chain, Black-Scholes Greeks and Implied Volatility...
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* 1. Header F&O Metrics Bar */}
+      <div className="p-5 rounded-xl bg-terminal-surface border border-terminal-border flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div className="text-xs font-mono text-gray-400 mb-1 flex items-center gap-2">
+            <Layers className="w-4 h-4 text-blue-400" />
+            <span>FUTURES & OPTIONS DERIVATIVES INTELLIGENCE</span>
+          </div>
+          <div className="flex items-baseline space-x-3">
+            <span className="text-2xl font-bold font-mono text-white">{symbol} Spot: ₹{chain?.underlying_price.toFixed(2)}</span>
+            <span className="text-xs font-mono text-gray-400">Lot Size: {chain?.lot_size}</span>
+          </div>
+        </div>
+
+        {/* Expiry Selector and Key Ratios */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center space-x-2 text-xs font-mono">
+            <span className="text-gray-400">Expiry:</span>
+            <select
+              value={selectedExpiry}
+              onChange={(e) => setSelectedExpiry(e.target.value)}
+              className="bg-terminal-dark border border-terminal-border rounded px-3 py-1.5 text-xs font-mono text-white focus:outline-none"
+            >
+              {chain?.expiry_dates.map((exp) => (
+                <option key={exp} value={exp}>{exp}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="bg-terminal-dark px-3 py-1.5 rounded border border-terminal-border text-xs font-mono">
+            <span className="text-gray-500 mr-2">PCR:</span>
+            <span className={`font-bold ${(chain?.pcr || 1) >= 1 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+              {chain?.pcr.toFixed(2)}
+            </span>
+          </div>
+
+          <div className="bg-terminal-dark px-3 py-1.5 rounded border border-terminal-border text-xs font-mono">
+            <span className="text-gray-500 mr-2">MAX PAIN:</span>
+            <span className="font-bold text-amber-400">₹{chain?.max_pain.toFixed(0)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Strategy Payoff Simulator */}
+      <div className="p-5 rounded-xl bg-terminal-surface border border-terminal-border">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <Calculator className="w-4 h-4 text-emerald-400" />
+            <h2 className="text-xs uppercase font-mono font-semibold tracking-wider text-gray-300">
+              Strategy Payoff & Breakeven Simulator (NSE F&O)
+            </h2>
+          </div>
+          <div className="flex space-x-2">
+            {[
+              { id: 'BULL_CALL_SPREAD', label: 'Bull Call Spread' },
+              { id: 'BEAR_PUT_SPREAD', label: 'Bear Put Spread' },
+              { id: 'LONG_STRADDLE', label: 'Long Straddle' }
+            ].map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setStrategy(s.id)}
+                className={`px-3 py-1 rounded text-xs font-mono transition-colors ${
+                  strategy === s.id
+                    ? 'bg-blue-600 text-white font-bold'
+                    : 'bg-terminal-dark border border-terminal-border text-gray-400 hover:text-white'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {payoff && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div className="bg-terminal-dark p-3 rounded-lg border border-terminal-border text-xs font-mono">
+              <span className="text-gray-500">MAX PROFIT</span>
+              <div className="text-sm font-bold text-terminal-green mt-1">₹{payoff.max_profit.toLocaleString('en-IN')}</div>
+            </div>
+            <div className="bg-terminal-dark p-3 rounded-lg border border-terminal-border text-xs font-mono">
+              <span className="text-gray-500">MAX LOSS</span>
+              <div className="text-sm font-bold text-terminal-red mt-1">₹{payoff.max_loss.toLocaleString('en-IN')}</div>
+            </div>
+            <div className="bg-terminal-dark p-3 rounded-lg border border-terminal-border text-xs font-mono">
+              <span className="text-gray-500">BREAKEVEN POINT(S)</span>
+              <div className="text-sm font-bold text-white mt-1">
+                {payoff.breakeven_points.length ? payoff.breakeven_points.map(p => `₹${p}`).join(', ') : 'None'}
+              </div>
+            </div>
+            <div className="bg-terminal-dark p-3 rounded-lg border border-terminal-border text-xs font-mono">
+              <span className="text-gray-500">EST. BROKERAGE & STT</span>
+              <div className="text-sm font-bold text-amber-400 mt-1">₹{payoff.estimated_charges.toFixed(2)}</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Option Chain Matrix (Calls | Strike | Puts) */}
+      <div className="rounded-xl bg-terminal-surface border border-terminal-border overflow-hidden">
+        <div className="p-3 bg-terminal-dark border-b border-terminal-border flex justify-between items-center text-xs font-mono">
+          <span className="text-emerald-400 font-bold uppercase tracking-wider">CALLS (CE)</span>
+          <span className="text-gray-300 font-bold uppercase tracking-wider">STRIKE</span>
+          <span className="text-rose-400 font-bold uppercase tracking-wider">PUTS (PE)</span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-center text-xs font-mono">
+            <thead>
+              <tr className="border-b border-terminal-border bg-terminal-dark/50 text-gray-500 text-[11px]">
+                {/* Call Columns */}
+                <th className="py-2 px-2">Delta</th>
+                <th className="py-2 px-2">IV (%)</th>
+                <th className="py-2 px-2">OI</th>
+                <th className="py-2 px-2 font-bold text-gray-300">Call LTP (₹)</th>
+                {/* Strike Column */}
+                <th className="py-2 px-4 bg-terminal-dark text-white font-bold">Strike</th>
+                {/* Put Columns */}
+                <th className="py-2 px-2 font-bold text-gray-300">Put LTP (₹)</th>
+                <th className="py-2 px-2">OI</th>
+                <th className="py-2 px-2">IV (%)</th>
+                <th className="py-2 px-2">Delta</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-terminal-border/40">
+              {chain?.strikes.map((s) => {
+                const isAtm = Math.abs(s.strike_price - (chain?.underlying_price || 0)) < 30;
+                return (
+                  <tr
+                    key={s.strike_price}
+                    className={`hover:bg-terminal-hover transition-colors ${
+                      isAtm ? 'bg-blue-500/10 font-semibold' : ''
+                    }`}
+                  >
+                    {/* Call Data */}
+                    <td className="py-2.5 px-2 text-gray-400">{s.call_delta.toFixed(2)}</td>
+                    <td className="py-2.5 px-2 text-gray-400">{s.call_iv.toFixed(1)}%</td>
+                    <td className="py-2.5 px-2 text-gray-300">{(s.call_oi / 1000).toFixed(0)}k</td>
+                    <td className="py-2.5 px-2 text-terminal-green font-bold">₹{s.call_ltp.toFixed(2)}</td>
+
+                    {/* Strike */}
+                    <td className={`py-2.5 px-4 font-bold ${isAtm ? 'bg-blue-600 text-white' : 'bg-terminal-dark text-white'}`}>
+                      {s.strike_price.toFixed(0)}
+                      {isAtm && <span className="block text-[9px] font-mono">ATM</span>}
+                    </td>
+
+                    {/* Put Data */}
+                    <td className="py-2.5 px-2 text-terminal-red font-bold">₹{s.put_ltp.toFixed(2)}</td>
+                    <td className="py-2.5 px-2 text-gray-300">{(s.put_oi / 1000).toFixed(0)}k</td>
+                    <td className="py-2.5 px-2 text-gray-400">{s.put_iv.toFixed(1)}%</td>
+                    <td className="py-2.5 px-2 text-gray-400">{s.put_delta.toFixed(2)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
