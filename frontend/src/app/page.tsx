@@ -15,6 +15,7 @@ import { NewsIntelligenceView } from '../components/NewsIntelligenceView';
 import { AdminHealthView } from '../components/AdminHealthView';
 import { fetchMarketOverview } from '../lib/api';
 import { MarketOverviewData } from '../types/market';
+import { FavouritesProvider } from '../context/FavouritesContext';
 
 export default function TerminalHome() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -51,75 +52,77 @@ export default function TerminalHome() {
   };
 
   return (
-    <div className={`min-h-screen ${theme === 'light' ? 'light' : ''} bg-terminal-dark text-terminal-text flex flex-col font-sans transition-colors duration-200`}>
-      {/* Top Application Header */}
-      <Header
-        marketStatus={overviewData?.market_status || 'CLOSED'}
-        isMarketOpen={overviewData?.is_market_open || false}
-        theme={theme}
-        setTheme={setTheme}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        onSelectSymbol={handleSelectSymbol}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-      />
-
-      <div className="flex-1 flex overflow-hidden">
-        {/* Navigation Sidebar (Desktop + Mobile Drawer + Bottom Nav) */}
-        <Sidebar
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
+    <FavouritesProvider>
+      <div className={`min-h-screen ${theme === 'light' ? 'light' : ''} bg-terminal-dark text-terminal-text flex flex-col font-sans transition-colors duration-200`}>
+        {/* Top Application Header */}
+        <Header
+          marketStatus={overviewData?.market_status || 'CLOSED'}
+          isMarketOpen={overviewData?.is_market_open || false}
+          theme={theme}
+          setTheme={setTheme}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          onSelectSymbol={handleSelectSymbol}
           mobileMenuOpen={mobileMenuOpen}
           setMobileMenuOpen={setMobileMenuOpen}
         />
 
-        {/* Main Content Workspace (With Mobile Safe Area Padding) */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 lg:pb-6 space-y-6">
-          {activeTab === 'overview' && (
-            <MarketOverviewView
-              data={overviewData}
-              onSelectSymbol={handleSelectSymbol}
-            />
-          )}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Navigation Sidebar (Desktop + Mobile Drawer + Bottom Nav) */}
+          <Sidebar
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            mobileMenuOpen={mobileMenuOpen}
+            setMobileMenuOpen={setMobileMenuOpen}
+          />
 
-          {activeTab === 'recommendations' && (
-            <DailyRecommendationsView onSelectSymbol={handleSelectSymbol} />
-          )}
+          {/* Main Content Workspace (With Mobile Safe Area Padding) */}
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 lg:pb-6 space-y-6">
+            {activeTab === 'overview' && (
+              <MarketOverviewView
+                data={overviewData}
+                onSelectSymbol={handleSelectSymbol}
+              />
+            )}
 
-          {activeTab === 'screener' && (
-            <ScreenerView onSelectSymbol={handleSelectSymbol} />
-          )}
+            {activeTab === 'recommendations' && (
+              <DailyRecommendationsView onSelectSymbol={handleSelectSymbol} />
+            )}
 
-          {activeTab === 'instrument' && (
-            <InstrumentDeepDiveView symbol={selectedSymbol} />
-          )}
+            {activeTab === 'screener' && (
+              <ScreenerView onSelectSymbol={handleSelectSymbol} />
+            )}
 
-          {activeTab === 'options' && (
-            <OptionsAnalyticsView symbol={selectedSymbol} />
-          )}
+            {activeTab === 'instrument' && (
+              <InstrumentDeepDiveView symbol={selectedSymbol} />
+            )}
 
-          {activeTab === 'predictions' && (
-            <PredictionsSignalsView symbol={selectedSymbol} />
-          )}
+            {activeTab === 'options' && (
+              <OptionsAnalyticsView symbol={selectedSymbol} />
+            )}
 
-          {activeTab === 'backtest' && (
-            <BacktestLabView />
-          )}
+            {activeTab === 'predictions' && (
+              <PredictionsSignalsView symbol={selectedSymbol} />
+            )}
 
-          {activeTab === 'paper' && (
-            <PaperTradingView />
-          )}
+            {activeTab === 'backtest' && (
+              <BacktestLabView />
+            )}
 
-          {activeTab === 'news' && (
-            <NewsIntelligenceView />
-          )}
+            {activeTab === 'paper' && (
+              <PaperTradingView />
+            )}
 
-          {activeTab === 'admin' && (
-            <AdminHealthView />
-          )}
-        </main>
+            {activeTab === 'news' && (
+              <NewsIntelligenceView />
+            )}
+
+            {activeTab === 'admin' && (
+              <AdminHealthView />
+            )}
+          </main>
+        </div>
       </div>
-    </div>
+    </FavouritesProvider>
   );
 }

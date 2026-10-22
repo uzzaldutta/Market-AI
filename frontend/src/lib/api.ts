@@ -115,3 +115,29 @@ export async function fetchHealth(): Promise<any> {
   if (!res.ok) throw new Error('Failed to fetch health');
   return res.json();
 }
+
+export async function resetPaperAccount(capital = 1000000.0): Promise<PaperAccount> {
+  const res = await fetch(`${API_BASE}/paper/reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ capital })
+  });
+  if (!res.ok) throw new Error('Failed to reset paper account');
+  return res.json();
+}
+
+export async function fetchFavourites(): Promise<any[]> {
+  const res = await fetch(`${API_BASE}/user/favourites`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch favourites');
+  return res.json();
+}
+
+export async function toggleFavourite(symbol: string): Promise<{ symbol: string; is_favourite: boolean; favourites: string[] }> {
+  const res = await fetch(`${API_BASE}/user/favourites/toggle`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ symbol })
+  });
+  if (!res.ok) throw new Error(`Failed to toggle favourite for ${symbol}`);
+  return res.json();
+}

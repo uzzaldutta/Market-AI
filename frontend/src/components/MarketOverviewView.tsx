@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { MarketOverviewData, Quote } from '../types/market';
-import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Activity, BarChart2 } from 'lucide-react';
+import { useFavourites } from '../context/FavouritesContext';
+import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Activity, BarChart2, Star } from 'lucide-react';
 
 interface Props {
   data: MarketOverviewData | null;
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) => {
+  const { isFavourite, toggle } = useFavourites();
+
   if (!data) {
     return (
       <div className="p-8 text-center text-gray-500 font-mono animate-pulse">
@@ -28,14 +31,28 @@ export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) =>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {indices.map((idx) => {
           const isUp = idx.change >= 0;
+          const isFav = isFavourite(idx.symbol);
           return (
             <div
               key={idx.symbol}
               onClick={() => onSelectSymbol(idx.symbol)}
-              className="p-4 rounded-xl bg-terminal-surface border border-terminal-border hover:border-blue-500/50 cursor-pointer transition-all shadow-sm group"
+              className="p-4 rounded-xl bg-terminal-surface border border-terminal-border hover:border-blue-500/50 cursor-pointer transition-all shadow-sm group relative"
             >
               <div className="flex items-center justify-between text-xs text-gray-400 font-mono mb-1">
-                <span>{idx.name}</span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggle(idx.symbol);
+                    }}
+                    className="p-0.5 rounded hover:bg-white/10 text-gray-500 hover:text-amber-400 transition-colors"
+                    title={isFav ? 'Remove from favourites' : 'Add to favourites'}
+                  >
+                    <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-amber-400 text-amber-400' : ''}`} />
+                  </button>
+                  <span>{idx.name}</span>
+                </div>
                 <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-terminal-dark border border-terminal-border">
                   NSE
                 </span>
@@ -146,20 +163,38 @@ export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) =>
                 </tr>
               </thead>
               <tbody className="divide-y divide-terminal-border/50">
-                {top_gainers.map((stk) => (
-                  <tr
-                    key={stk.symbol}
-                    onClick={() => onSelectSymbol(stk.symbol)}
-                    className="hover:bg-terminal-hover cursor-pointer transition-colors"
-                  >
-                    <td className="py-2.5 font-bold text-gray-200">{stk.symbol}</td>
-                    <td className="py-2.5 text-right">₹{stk.ltp.toFixed(2)}</td>
-                    <td className="py-2.5 text-right text-terminal-green font-semibold">
-                      +{stk.change_pct.toFixed(2)}%
-                    </td>
-                    <td className="py-2.5 text-right text-gray-400">{(stk.volume / 1000).toFixed(0)}k</td>
-                  </tr>
-                ))}
+                {top_gainers.map((stk) => {
+                  const isFav = isFavourite(stk.symbol);
+                  return (
+                    <tr
+                      key={stk.symbol}
+                      onClick={() => onSelectSymbol(stk.symbol)}
+                      className="hover:bg-terminal-hover cursor-pointer transition-colors"
+                    >
+                      <td className="py-2.5 font-bold text-gray-200">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggle(stk.symbol);
+                            }}
+                            className="p-1 -ml-1 rounded hover:bg-white/10 text-gray-500 hover:text-amber-400 transition-colors"
+                            title={isFav ? 'Remove favourite' : 'Add favourite'}
+                          >
+                            <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-amber-400 text-amber-400' : ''}`} />
+                          </button>
+                          <span>{stk.symbol}</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 text-right">₹{stk.ltp.toFixed(2)}</td>
+                      <td className="py-2.5 text-right text-terminal-green font-semibold">
+                        +{stk.change_pct.toFixed(2)}%
+                      </td>
+                      <td className="py-2.5 text-right text-gray-400">{(stk.volume / 1000).toFixed(0)}k</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -184,20 +219,38 @@ export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) =>
                 </tr>
               </thead>
               <tbody className="divide-y divide-terminal-border/50">
-                {top_losers.map((stk) => (
-                  <tr
-                    key={stk.symbol}
-                    onClick={() => onSelectSymbol(stk.symbol)}
-                    className="hover:bg-terminal-hover cursor-pointer transition-colors"
-                  >
-                    <td className="py-2.5 font-bold text-gray-200">{stk.symbol}</td>
-                    <td className="py-2.5 text-right">₹{stk.ltp.toFixed(2)}</td>
-                    <td className="py-2.5 text-right text-terminal-red font-semibold">
-                      {stk.change_pct.toFixed(2)}%
-                    </td>
-                    <td className="py-2.5 text-right text-gray-400">{(stk.volume / 1000).toFixed(0)}k</td>
-                  </tr>
-                ))}
+                {top_losers.map((stk) => {
+                  const isFav = isFavourite(stk.symbol);
+                  return (
+                    <tr
+                      key={stk.symbol}
+                      onClick={() => onSelectSymbol(stk.symbol)}
+                      className="hover:bg-terminal-hover cursor-pointer transition-colors"
+                    >
+                      <td className="py-2.5 font-bold text-gray-200">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggle(stk.symbol);
+                            }}
+                            className="p-1 -ml-1 rounded hover:bg-white/10 text-gray-500 hover:text-amber-400 transition-colors"
+                            title={isFav ? 'Remove favourite' : 'Add favourite'}
+                          >
+                            <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-amber-400 text-amber-400' : ''}`} />
+                          </button>
+                          <span>{stk.symbol}</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 text-right">₹{stk.ltp.toFixed(2)}</td>
+                      <td className="py-2.5 text-right text-terminal-red font-semibold">
+                        {stk.change_pct.toFixed(2)}%
+                      </td>
+                      <td className="py-2.5 text-right text-gray-400">{(stk.volume / 1000).toFixed(0)}k</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

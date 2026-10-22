@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useFavourites } from '../context/FavouritesContext';
 import {
   Sparkles,
   ShieldCheck,
@@ -18,7 +19,8 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
-  Wallet
+  Wallet,
+  Star
 } from 'lucide-react';
 
 interface DailyRecommendation {
@@ -72,6 +74,8 @@ export const DailyRecommendationsView: React.FC<Props> = ({ onSelectSymbol, onNa
   const [expandedSym, setExpandedSym] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
+  const { isFavourite, toggle } = useFavourites();
+
   useEffect(() => {
     let isMounted = true;
     async function loadRecs() {
@@ -102,6 +106,7 @@ export const DailyRecommendationsView: React.FC<Props> = ({ onSelectSymbol, onNa
   };
 
   const filteredRecs = data?.recommendations.filter(r => {
+    if (filter === 'FAVOURITES') return isFavourite(r.symbol);
     if (filter === 'ELIGIBLE') return r.status === 'ELIGIBLE';
     if (filter === 'WATCH') return r.status === 'WATCH';
     if (filter === 'LONG') return r.direction === 'LONG';
@@ -147,6 +152,7 @@ export const DailyRecommendationsView: React.FC<Props> = ({ onSelectSymbol, onNa
         <div className="flex flex-wrap items-center gap-2">
           {[
             { id: 'ALL', label: `All Setups (${data?.recommendations.length || 0})` },
+            { id: 'FAVOURITES', label: '⭐ Favourites' },
             { id: 'ELIGIBLE', label: `Eligible High Conviction (${data?.eligible_count || 0})` },
             { id: 'WATCH', label: `Watchlist Setups (${data?.watch_count || 0})` },
             { id: 'LONG', label: 'Long Only' },
@@ -211,6 +217,17 @@ export const DailyRecommendationsView: React.FC<Props> = ({ onSelectSymbol, onNa
                     </div>
                     <div>
                       <div className="flex items-center space-x-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggle(rec.symbol);
+                          }}
+                          className="p-1 -ml-1 rounded hover:bg-white/10 text-gray-500 hover:text-amber-400 transition-colors"
+                          title={isFavourite(rec.symbol) ? 'Remove from favourites' : 'Save to favourites'}
+                        >
+                          <Star className={`w-3.5 h-3.5 ${isFavourite(rec.symbol) ? 'fill-amber-400 text-amber-400' : ''}`} />
+                        </button>
                         <span className="font-bold text-base font-mono text-white tracking-wide">{rec.symbol}</span>
                         <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-terminal-dark border border-terminal-border text-gray-400">
                           {rec.sector}

@@ -11,9 +11,11 @@ from ..schemas.market import (
     TechnicalIndicatorResponse, OptionChainResponse, StrategyPayoffResponse,
     PredictionResponse, SignalResponse, BacktestRequest, BacktestResponse,
     PaperOrderRequest, PaperOrderResponse, PaperAccountResponse,
-    ScreenerFilterRequest, ScreenerResponse, NewsItemResponse
+    ScreenerFilterRequest, ScreenerResponse, NewsItemResponse,
+    FavouriteToggleRequest, FavouriteItemResponse
 )
 from ..providers.manager import get_market_data_provider
+from ..core.nse_instruments import NSE_SYMBOL_INDEX, search_nse_instruments
 from ..engine.indicators import TechnicalIndicators
 from ..engine.greeks import OptionsMath
 from ..engine.ml_models import MarketPredictor
@@ -145,19 +147,67 @@ def run_backtest(req: BacktestRequest):
 def get_paper_account():
     """Returns virtual paper-trading account equity, P&L, and open positions."""
     # Update MTM for open positions
-    open_syms = [pos["symbol"] for pos in paper_engine.positions.values() if pos["net_quantity"] > 0]
+    open_syms = list(set([pos["symbol"] for pos in paper_engine.positions.values() if pos["net_quantity"] != 0]))
     quotes = {}
     for s in open_syms:
-        q = provider.get_quote(s)
-        quotes[s] = q["ltp"]
-    paper_engine.update_mtm(quotes)
+        try:
+            q = provider.get_quote(s)
+            quotes[s] = q["ltp"]
+        except Exception:
+            pass
+    if quotes:
+        paper_engine.update_mtm(quotes)
     return paper_engine.get_account_summary()
 
 @router.post("/paper/orders", response_model=PaperOrderResponse)
 def place_paper_order(order: PaperOrderRequest):
-    """Executes simulated paper order within virtual double-entry ledger."""
+    """Executes simulated paper order across Equities, Futures and Options within virtual ledger."""
     quote = provider.get_quote(order.symbol)
     return paper_engine.place_order(order, current_market_price=quote["ltp"])
+
+@router.post("/paper/reset", response_model=PaperAccountResponse)
+def reset_paper_account(capital: float = Body(1000000.0, embed=True)):
+    """Resets virtual paper trading portfolio back to clean ₹10,00,000 INR allocation."""
+    paper_engine.reset_account(capital)
+    return paper_engine.get_account_summary()
+
+@router.get("/user/favourites", response_model=List[FavouriteItemResponse])
+def get_user_favourites():
+    """Fetches user starred/favourite instruments with live quote telemetry."""
+    fav_syms = paper_engine.get_favourites()
+    results = []
+    for s in fav_syms:
+        meta = NSE_SYMBOL_INDEX.get(s, {"name": f"{s} Ltd", "sector": "NSE Equities"})
+        try:
+            q = provider.get_quote(s)
+            ltp = q.get("ltp", 1000.0)
+            change_pct = q.get("change_pct", 0.0)
+            vol = q.get("volume", 500000)
+        except Exception:
+            ltp = 1000.0
+            change_pct = 0.0
+            vol = 100000
+
+        results.append(FavouriteItemResponse(
+            symbol=s,
+            name=meta.get("name", s),
+            sector=meta.get("sector", "NSE"),
+            ltp=ltp,
+            change_pct=change_pct,
+            volume=vol,
+            is_favourite=True
+        ))
+    return results
+
+@router.post("/user/favourites/toggle")
+def toggle_user_favourite(req: FavouriteToggleRequest):
+    """Toggles a symbol in user favourites list."""
+    is_fav = paper_engine.toggle_favourite(req.symbol)
+    return {
+        "symbol": req.symbol.upper(),
+        "is_favourite": is_fav,
+        "favourites": paper_engine.get_favourites()
+    }
 
 @router.get("/news", response_model=List[NewsItemResponse])
 def get_news(symbol: Optional[str] = None):

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Sun, Moon, ShieldCheck, Activity, Clock, Menu, X, ArrowRight } from 'lucide-react';
+import { Search, Sun, Moon, ShieldCheck, Activity, Clock, Menu, X, ArrowRight, Star } from 'lucide-react';
 import { NSE_UNIVERSE } from '../types/nseUniverse';
+import { useFavourites } from '../context/FavouritesContext';
 
 interface HeaderProps {
   marketStatus: string;
@@ -30,8 +31,12 @@ export const Header: React.FC<HeaderProps> = ({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  const { favourites, isFavourite, toggle } = useFavourites();
 
-  const quickSymbols = ['NIFTY50', 'BANKNIFTY', 'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ZOMATO', 'TATAPOWER'];
+  const quickSymbols = favourites.length > 0 
+    ? favourites.slice(0, 7) 
+    : ['NIFTY50', 'BANKNIFTY', 'RELIANCE', 'TCS', 'HDFCBANK', 'INFY'];
 
   // Dynamic search filter across NSE stocks
   useEffect(() => {
@@ -151,35 +156,54 @@ export const Header: React.FC<HeaderProps> = ({
               <span>ALL NSE EQUITIES &amp; INDICES</span>
               <span>Press [Enter] to select</span>
             </div>
-            {searchResults.map((item) => (
-              <div
-                key={item.symbol}
-                onClick={() => handleSelect(item.symbol)}
-                className="p-2.5 hover:bg-terminal-hover cursor-pointer border-b border-terminal-border/40 last:border-none flex items-center justify-between transition-colors"
-              >
-                <div>
-                  <div className="font-bold text-white flex items-center gap-2">
-                    {item.symbol}
-                    <span className="text-[10px] text-gray-400 font-normal">{item.sector}</span>
+            {searchResults.map((item) => {
+              const isFav = isFavourite(item.symbol);
+              return (
+                <div
+                  key={item.symbol}
+                  onClick={() => handleSelect(item.symbol)}
+                  className="p-2.5 hover:bg-terminal-hover cursor-pointer border-b border-terminal-border/40 last:border-none flex items-center justify-between transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggle(item.symbol);
+                      }}
+                      className="p-1 rounded hover:bg-white/10 text-gray-500 hover:text-amber-400 transition-colors"
+                      title={isFav ? 'Remove from favourites' : 'Add to favourites'}
+                    >
+                      <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-amber-400 text-amber-400' : ''}`} />
+                    </button>
+                    <div>
+                      <div className="font-bold text-white flex items-center gap-2">
+                        {item.symbol}
+                        <span className="text-[10px] text-gray-400 font-normal">{item.sector}</span>
+                      </div>
+                      <div className="text-[11px] text-gray-400 truncate max-w-xs">{item.name}</div>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-gray-400 truncate max-w-xs">{item.name}</div>
+                  <ArrowRight className="w-3.5 h-3.5 text-gray-500" />
                 </div>
-                <ArrowRight className="w-3.5 h-3.5 text-gray-500" />
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Right Controls: Quick Tickers, Disclaimer Pill, Theme Toggle */}
+      {/* Right Controls: Quick Tickers / Favourites, Disclaimer Pill, Theme Toggle */}
       <div className="flex items-center space-x-2 md:space-x-3">
-        {/* Quick Tickers */}
-        <div className="hidden 2xl:flex items-center space-x-1">
+        {/* Quick Tickers / Starred Watchlist */}
+        <div className="hidden xl:flex items-center space-x-1">
+          <span className="text-[10px] font-mono text-amber-400 font-semibold flex items-center gap-0.5 mr-1">
+            <Star className="w-3 h-3 fill-amber-400" /> Watch:
+          </span>
           {quickSymbols.map((sym) => (
             <button
               key={sym}
               onClick={() => onSelectSymbol(sym)}
-              className="px-2 py-0.5 text-[11px] font-mono rounded bg-terminal-dark hover:bg-terminal-border text-gray-300 border border-terminal-border transition-colors"
+              className="px-2 py-0.5 text-[11px] font-mono rounded bg-terminal-dark hover:bg-terminal-border text-gray-300 border border-terminal-border transition-colors flex items-center gap-1"
             >
               {sym}
             </button>

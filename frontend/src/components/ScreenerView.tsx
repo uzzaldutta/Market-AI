@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { fetchScreener } from '../lib/api';
 import { ScreenerRow } from '../types/market';
-import { Filter, Download, Search, CheckCircle2, Clock, Ban, HelpCircle } from 'lucide-react';
+import { useFavourites } from '../context/FavouritesContext';
+import { Filter, Download, Search, CheckCircle2, Clock, Ban, HelpCircle, Star } from 'lucide-react';
 
 interface Props {
   onSelectSymbol: (s: string) => void;
@@ -12,8 +13,11 @@ interface Props {
 export const ScreenerView: React.FC<Props> = ({ onSelectSymbol }) => {
   const [preset, setPreset] = useState<string>('STRONG_BULLISH');
   const [minRvol, setMinRvol] = useState<number>(1.0);
+  const [favouritesOnly, setFavouritesOnly] = useState<boolean>(false);
   const [data, setData] = useState<ScreenerRow[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  
+  const { isFavourite, toggle } = useFavourites();
 
   const presets = [
     { id: 'STRONG_BULLISH', label: 'Strong Bullish Trend' },
@@ -124,6 +128,17 @@ export const ScreenerView: React.FC<Props> = ({ onSelectSymbol }) => {
             </select>
           </div>
           <button
+            onClick={() => setFavouritesOnly(!favouritesOnly)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono transition-colors ${
+              favouritesOnly 
+                ? 'bg-amber-400/20 text-amber-300 border-amber-400/40 shadow-sm'
+                : 'bg-terminal-dark hover:bg-terminal-border border-terminal-border text-gray-300'
+            }`}
+          >
+            <Star className={`w-3.5 h-3.5 ${favouritesOnly ? 'fill-amber-400 text-amber-400' : ''}`} />
+            <span>{favouritesOnly ? 'Favourites Only' : 'All Screener'}</span>
+          </button>
+          <button
             onClick={handleExportCSV}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-terminal-dark hover:bg-terminal-border border border-terminal-border text-xs font-mono text-gray-300 transition-colors"
           >
@@ -137,7 +152,7 @@ export const ScreenerView: React.FC<Props> = ({ onSelectSymbol }) => {
       <div className="rounded-xl bg-terminal-surface border border-terminal-border overflow-hidden">
         <div className="p-4 border-b border-terminal-border flex justify-between items-center">
           <div className="text-xs font-mono text-gray-400">
-            Matches Found: <span className="text-terminal-text font-bold">{data.length}</span> instruments
+            Matches Found: <span className="text-terminal-text font-bold">{(favouritesOnly ? data.filter(r => isFavourite(r.symbol)) : data).length}</span> instruments
           </div>
           <div className="text-[11px] font-mono text-gray-500">
             Prices in INR (₹) • Strict No Look-Ahead Signal Attribution
@@ -166,15 +181,16 @@ export const ScreenerView: React.FC<Props> = ({ onSelectSymbol }) => {
                     Filtering NSE Instruments with institutional quantitative criteria...
                   </td>
                 </tr>
-              ) : data.length === 0 ? (
+              ) : (favouritesOnly ? data.filter(r => isFavourite(r.symbol)) : data).length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-8 text-center text-gray-500">
                     No instruments currently match this filter criteria.
                   </td>
                 </tr>
               ) : (
-                data.map((row) => {
+                (favouritesOnly ? data.filter(r => isFavourite(r.symbol)) : data).map((row) => {
                   const isUp = row.change_pct >= 0;
+                  const isFav = isFavourite(row.symbol);
                   return (
                     <tr
                       key={row.symbol}
@@ -182,8 +198,23 @@ export const ScreenerView: React.FC<Props> = ({ onSelectSymbol }) => {
                       className="hover:bg-terminal-hover/80 cursor-pointer transition-colors"
                     >
                       <td className="py-3 px-4 font-bold text-gray-200">
-                        {row.symbol}
-                        <span className="block text-[10px] text-gray-500 font-normal">{row.name}</span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggle(row.symbol);
+                            }}
+                            className="p-1 -ml-1 rounded hover:bg-white/10 text-gray-500 hover:text-amber-400 transition-colors"
+                            title={isFav ? 'Remove from favourites' : 'Add to favourites'}
+                          >
+                            <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-amber-400 text-amber-400' : ''}`} />
+                          </button>
+                          <div>
+                            <span>{row.symbol}</span>
+                            <span className="block text-[10px] text-gray-500 font-normal">{row.name}</span>
+                          </div>
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-gray-400">{row.sector}</td>
                       <td className="py-3 px-4 text-right font-semibold">₹{row.ltp.toFixed(2)}</td>

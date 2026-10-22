@@ -251,7 +251,12 @@ class PaperOrderRequest(BaseModel):
     quantity: int
     price: Optional[float] = None
     trigger_price: Optional[float] = None
-    product_type: str = "CNC" # CNC, MIS, NRML
+    product_type: str = "CNC" # CNC, MIS, NRML, FUT, OPT
+    instrument_type: str = "EQUITY" # EQUITY, FUTURES, OPTIONS
+    strike_price: Optional[float] = None
+    option_type: Optional[str] = None # CE, PE
+    expiry_date: Optional[str] = None
+    lot_size: int = 1
     client_order_id: Optional[str] = None
 
 class PaperOrderResponse(BaseModel):
@@ -261,6 +266,11 @@ class PaperOrderResponse(BaseModel):
     side: OrderSide
     order_type: OrderType
     product_type: str
+    instrument_type: str = "EQUITY"
+    strike_price: Optional[float] = None
+    option_type: Optional[str] = None
+    expiry_date: Optional[str] = None
+    lot_size: int = 1
     quantity: int
     filled_quantity: int
     price: Optional[float]
@@ -271,7 +281,10 @@ class PaperOrderResponse(BaseModel):
 class PaperPositionResponse(BaseModel):
     symbol: str
     product_type: str
+    instrument_type: str = "EQUITY"
+    contract_display: str = ""
     net_quantity: int
+    lot_size: int = 1
     average_buy_price: float
     current_market_price: float
     unrealized_pnl: float
@@ -337,3 +350,17 @@ class NewsItemResponse(BaseModel):
     sentiment_score: float
     affected_symbols: List[str]
     impact_severity: str
+
+# --- FAVOURITES / WATCHLIST SCHEMAS ---
+class FavouriteToggleRequest(BaseModel):
+    symbol: str
+
+class FavouriteItemResponse(BaseModel):
+    symbol: str
+    name: str
+    sector: str
+    ltp: float
+    change_pct: float
+    volume: int
+    is_favourite: bool = True
+

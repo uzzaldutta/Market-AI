@@ -192,6 +192,40 @@ export interface ScreenerRow {
   ai_bullish_prob: number;
 }
 
+export interface PaperPosition {
+  symbol: string;
+  product_type: string;
+  instrument_type?: 'EQUITY' | 'FUTURES' | 'OPTIONS';
+  contract_display?: string;
+  net_quantity: number;
+  lot_size?: number;
+  average_buy_price: number;
+  current_market_price: number;
+  unrealized_pnl: number;
+  realized_pnl: number;
+  pnl_percentage: number;
+}
+
+export interface PaperOrder {
+  order_id: string;
+  client_order_id: string;
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  order_type: string;
+  product_type: string;
+  instrument_type?: 'EQUITY' | 'FUTURES' | 'OPTIONS';
+  strike_price?: number;
+  option_type?: 'CE' | 'PE';
+  expiry_date?: string;
+  lot_size?: number;
+  quantity: number;
+  filled_quantity: number;
+  price: number | null;
+  status: string;
+  rejection_reason: string | null;
+  created_at: string;
+}
+
 export interface PaperAccount {
   account_name: string;
   base_currency: string;
@@ -203,30 +237,18 @@ export interface PaperAccount {
   unrealized_pnl: number;
   realized_pnl: number;
   day_pnl: number;
-  positions: Array<{
-    symbol: string;
-    product_type: string;
-    net_quantity: number;
-    average_buy_price: number;
-    current_market_price: number;
-    unrealized_pnl: number;
-    realized_pnl: number;
-    pnl_percentage: number;
-  }>;
-  recent_orders: Array<{
-    order_id: string;
-    client_order_id: string;
-    symbol: string;
-    side: 'BUY' | 'SELL';
-    order_type: string;
-    product_type: string;
-    quantity: number;
-    filled_quantity: number;
-    price: number | null;
-    status: string;
-    rejection_reason: string | null;
-    created_at: string;
-  }>;
+  positions: PaperPosition[];
+  recent_orders: PaperOrder[];
+}
+
+export interface FavouriteItem {
+  symbol: string;
+  name: string;
+  sector: string;
+  ltp: number;
+  change_pct: number;
+  volume: number;
+  is_favourite: boolean;
 }
 
 export interface NewsItem {

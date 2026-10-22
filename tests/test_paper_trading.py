@@ -91,3 +91,68 @@ def test_paper_sell_order_and_realized_pnl(clean_engine):
     # Gross PnL = 100 * 100 = ₹10,000; minus buy charges (₹25) and sell charges (₹25) = ₹9,950
     assert clean_engine.realized_pnl == (10000.0 - 50.0)
     assert clean_engine.positions["INFY_CNC"]["net_quantity"] == 0
+
+def test_paper_futures_long_and_short(clean_engine):
+    # Buy 1 lot NIFTY (lot_size=25 or 50)
+    req = PaperOrderRequest(
+        symbol="NIFTY50",
+        side=OrderSide.BUY,
+        order_type=OrderType.MARKET,
+        quantity=1, # 1 lot
+        product_type="NRML",
+        instrument_type="FUTURES",
+        lot_size=50,
+        expiry_date="2026-10-29",
+        client_order_id="FUT-LONG-01"
+    )
+    res = clean_engine.place_order(req, current_market_price=24500.0)
+    assert res.status == OrderStatus.FILLED
+    assert res.instrument_type == "FUTURES"
+    
+    summary = clean_engine.get_account_summary()
+    assert len(summary.positions) == 1
+    fut_pos = summary.positions[0]
+    assert fut_pos.instrument_type == "FUTURES"
+    assert fut_pos.net_quantity == 50
+    assert "FUT" in fut_pos.contract_display
+
+def test_paper_options_buy_and_squareoff(clean_engine):
+    # Buy 2 lots NIFTY 24500 CE
+    req = PaperOrderRequest(
+        symbol="NIFTY50",
+        side=OrderSide.BUY,
+        order_type=OrderType.MARKET,
+        quantity=2, # 2 lots
+        product_type="NRML",
+        instrument_type="OPTIONS",
+        strike_price=24500.0,
+        option_type="CE",
+        expiry_date="2026-10-29",
+        lot_size=50,
+        price=120.0,
+        client_order_id="OPT-BUY-01"
+    )
+    res = clean_engine.place_order(req, current_market_price=24500.0)
+    assert res.status == OrderStatus.FILLED
+    assert res.instrument_type == "OPTIONS"
+    
+    summary = clean_engine.get_account_summary()
+    assert len(summary.positions) == 1
+    opt_pos = summary.positions[0]
+    assert opt_pos.net_quantity == 100 # 2 lots * 50
+    assert "24500 CE" in opt_pos.contract_display
+
+def test_paper_favourites_toggle(clean_engine):
+    favs = clean_engine.get_favourites()
+    assert "RELIANCE" in favs
+    
+    # Toggle off
+    removed = clean_engine.toggle_favourite("RELIANCE")
+    assert removed is False
+    assert "RELIANCE" not in clean_engine.get_favourites()
+    
+    # Toggle back on
+    added = clean_engine.toggle_favourite("RELIANCE")
+    assert added is True
+    assert "RELIANCE" in clean_engine.get_favourites()
+
