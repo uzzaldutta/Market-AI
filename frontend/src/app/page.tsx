@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { Sidebar, TabType } from '../components/Sidebar';
 import { MarketOverviewView } from '../components/MarketOverviewView';
+import { DailyRecommendationsView } from '../components/DailyRecommendationsView';
 import { ScreenerView } from '../components/ScreenerView';
 import { InstrumentDeepDiveView } from '../components/InstrumentDeepDiveView';
 import { OptionsAnalyticsView } from '../components/OptionsAnalyticsView';
@@ -80,6 +81,10 @@ export default function TerminalHome() {
               data={overviewData}
               onSelectSymbol={handleSelectSymbol}
             />
+          )}
+
+          {activeTab === 'recommendations' && (
+            <DailyRecommendationsView onSelectSymbol={handleSelectSymbol} />
           )}
 
           {activeTab === 'screener' && (

@@ -22,6 +22,7 @@ from ..engine.backtester import BacktestEngine
 from ..engine.paper_engine import paper_engine
 from ..engine.screener import ScreenerEngine
 from ..engine.news import NewsIntelligenceEngine
+from ..engine.daily_recommendations import DailyRecommendationsEngine
 
 router = APIRouter()
 
@@ -30,6 +31,15 @@ predictor = MarketPredictor()
 signal_engine = SignalEngine()
 screener_engine = ScreenerEngine()
 news_engine = NewsIntelligenceEngine()
+daily_rec_engine = DailyRecommendationsEngine()
+
+@router.get("/recommendations/daily")
+def get_daily_recommendations(limit: int = Query(12, ge=1, le=50)):
+    """
+    Synthesizes Technicals, AI Model probabilities, F&O positioning,
+    News sentiment, and Stop-Loss invalidation levels to provide daily high-conviction trade setups.
+    """
+    return daily_rec_engine.generate_daily_recommendations(limit=limit)
 
 @router.get("/overview", response_model=MarketOverviewResponse)
 def get_market_overview():

@@ -3,6 +3,7 @@
 import React from 'react';
 import {
   LayoutDashboard,
+  Sparkles,
   Filter,
   TrendingUp,
   Cpu,
@@ -16,6 +17,7 @@ import {
 
 export type TabType =
   | 'overview'
+  | 'recommendations'
   | 'screener'
   | 'instrument'
   | 'options'
@@ -40,6 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const menuItems = [
     { id: 'overview', label: 'Market Overview', icon: LayoutDashboard },
+    { id: 'recommendations', label: 'AI Daily Recommendations', icon: Sparkles },
     { id: 'screener', label: 'Stock Screener', icon: Filter },
     { id: 'instrument', label: 'Technical Analysis', icon: TrendingUp },
     { id: 'options', label: 'F&O & Greeks', icon: Layers },
@@ -157,9 +160,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-terminal-surface/95 backdrop-blur border-t border-terminal-border flex items-center justify-around py-1.5 px-2 select-none">
         {[
           { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+          { id: 'recommendations', label: 'AI Daily', icon: Sparkles },
           { id: 'screener', label: 'Screener', icon: Filter },
           { id: 'instrument', label: 'Technical', icon: TrendingUp },
-          { id: 'options', label: 'F&O', icon: Layers },
           { id: 'paper', label: 'Paper', icon: Wallet },
         ].map((item) => {
           const Icon = item.icon;
