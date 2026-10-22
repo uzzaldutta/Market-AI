@@ -18,10 +18,10 @@ class ScreenerEngine:
         self.signal_engine = SignalEngine()
 
     def run_screen(self, filters: ScreenerFilterRequest) -> ScreenerResponse:
-        # Base universe of high-liquidity NSE stocks
+        # Expanded universe of high-liquidity NSE stocks across all sectors
         symbols = [
             ("RELIANCE", "Reliance Industries Ltd", "Energy"),
-            ("TCS", "Tata Consultancy Services", "IT"),
+            ("TCS", "Tata Consultancy Services Ltd", "IT"),
             ("HDFCBANK", "HDFC Bank Ltd", "Banking"),
             ("INFY", "Infosys Ltd", "IT"),
             ("ICICIBANK", "ICICI Bank Ltd", "Banking"),
@@ -29,7 +29,33 @@ class ScreenerEngine:
             ("BHARTIARTL", "Bharti Airtel Ltd", "Telecom"),
             ("ITC", "ITC Ltd", "FMCG"),
             ("LT", "Larsen & Toubro Ltd", "Infrastructure"),
-            ("TATAMOTORS", "Tata Motors Ltd", "Automobile")
+            ("TATAMOTORS", "Tata Motors Ltd", "Automobile"),
+            ("MARUTI", "Maruti Suzuki India Ltd", "Automobile"),
+            ("SUNPHARMA", "Sun Pharmaceutical Industries", "Pharma"),
+            ("BAJFINANCE", "Bajaj Finance Ltd", "Financial"),
+            ("KOTAKBANK", "Kotak Mahindra Bank Ltd", "Banking"),
+            ("AXISBANK", "Axis Bank Ltd", "Banking"),
+            ("TITAN", "Titan Company Ltd", "Consumer"),
+            ("HCLTECH", "HCL Technologies Ltd", "IT"),
+            ("WIPRO", "Wipro Ltd", "IT"),
+            ("NTPC", "NTPC Ltd", "Power"),
+            ("TATASTEEL", "Tata Steel Ltd", "Metals"),
+            ("JSWSTEEL", "JSW Steel Ltd", "Metals"),
+            ("ADANIENT", "Adani Enterprises Ltd", "Conglomerate"),
+            ("ADANIPORTS", "Adani Ports and SEZ Ltd", "Infrastructure"),
+            ("BEL", "Bharat Electronics Ltd", "Defense"),
+            ("HAL", "Hindustan Aeronautics Ltd", "Defense"),
+            ("ZOMATO", "Zomato Ltd", "Internet"),
+            ("JIOFIN", "Jio Financial Services Ltd", "Financial"),
+            ("TATAPOWER", "Tata Power Company Ltd", "Power"),
+            ("VEDL", "Vedanta Ltd", "Metals"),
+            ("IRFC", "Indian Railway Finance Corporation", "Railways"),
+            ("RVNL", "Rail Vikas Nigam Ltd", "Railways"),
+            ("SUZLON", "Suzlon Energy Ltd", "Green Energy"),
+            ("BSE", "BSE Ltd (Exchange)", "Financial"),
+            ("CDSL", "Central Depository Services Ltd", "Financial"),
+            ("POLYCAB", "Polycab India Ltd", "Capital Goods"),
+            ("DIXON", "Dixon Technologies Ltd", "Electronics"),
         ]
 
         rows: List[ScreenerRow] = []

@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
-import { Search, Sun, Moon, ShieldCheck, Activity, Clock, Menu, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, Sun, Moon, ShieldCheck, Activity, Clock, Menu, X, ArrowRight } from 'lucide-react';
+import { NSE_UNIVERSE } from '../types/nseUniverse';
 
 interface HeaderProps {
   marketStatus: string;
@@ -26,7 +27,64 @@ export const Header: React.FC<HeaderProps> = ({
   mobileMenuOpen,
   setMobileMenuOpen
 }) => {
-  const quickSymbols = ['NIFTY50', 'BANKNIFTY', 'RELIANCE', 'TCS', 'HDFCBANK', 'INFY'];
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showDropdown, setShowDropdown] = useState<boolean>(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const quickSymbols = ['NIFTY50', 'BANKNIFTY', 'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ZOMATO', 'TATAPOWER'];
+
+  // Dynamic search filter across NSE stocks
+  useEffect(() => {
+    const q = searchQuery.trim().toUpperCase();
+    if (q.length >= 1) {
+      const filtered = NSE_UNIVERSE.filter(
+        item => item.symbol.includes(q) || item.name.toUpperCase().includes(q)
+      ).slice(0, 8);
+
+      // If no exact match, add user typed custom ticker
+      if (!filtered.some(f => f.symbol === q)) {
+        filtered.unshift({
+          symbol: q,
+          name: `${q} (NSE Listed Stock)`,
+          type: 'EQUITY',
+          sector: 'NSE Equities'
+        });
+      }
+      setSearchResults(filtered);
+      setShowDropdown(true);
+    } else {
+      setSearchResults([]);
+      setShowDropdown(false);
+    }
+  }, [searchQuery]);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (symbol: string) => {
+    onSelectSymbol(symbol);
+    setSearchQuery('');
+    setShowDropdown(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const q = searchQuery.trim().toUpperCase();
+      if (searchResults.length > 0) {
+        handleSelect(searchResults[0].symbol);
+      } else if (q) {
+        handleSelect(q);
+      }
+    }
+  };
 
   return (
     <header className="h-16 border-b border-terminal-border bg-terminal-surface/90 backdrop-blur px-4 md:px-6 flex items-center justify-between sticky top-0 z-50">
@@ -66,29 +124,57 @@ export const Header: React.FC<HeaderProps> = ({
           />
           <span className="text-gray-400">NSE:</span>
           <span className={isMarketOpen ? 'text-terminal-green font-semibold' : 'text-amber-400 font-semibold'}>
-            {marketStatus}
+            {marketStatus} (09:15-15:30 IST)
           </span>
         </div>
       </div>
 
-      {/* Global Search & Quick Symbols */}
-      <div className="flex-1 max-w-md mx-6 hidden lg:block">
+      {/* Global Search with Live Autocomplete Dropdown */}
+      <div ref={dropdownRef} className="flex-1 max-w-md mx-4 lg:mx-6 relative">
         <div className="relative">
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search NSE/BSE Equities, Indices, F&O (e.g. RELIANCE, NIFTY50)..."
+            onFocus={() => searchQuery.trim() && setShowDropdown(true)}
+            onKeyDown={handleKeyDown}
+            placeholder="Search all NSE stocks (e.g. ZOMATO, TATAPOWER, RELIANCE, NIFTY50)..."
             className="w-full bg-terminal-dark border border-terminal-border rounded-lg pl-9 pr-4 py-1.5 text-xs text-terminal-text focus:outline-none focus:border-blue-500 placeholder-gray-500 font-mono"
           />
         </div>
+
+        {/* Search Results Dropdown */}
+        {showDropdown && searchResults.length > 0 && (
+          <div className="absolute left-0 right-0 top-11 bg-terminal-surface border border-terminal-border rounded-xl shadow-2xl overflow-hidden z-50 font-mono text-xs max-h-80 overflow-y-auto">
+            <div className="p-2 border-b border-terminal-border text-[10px] text-gray-400 bg-terminal-dark/60 flex justify-between">
+              <span>ALL NSE EQUITIES &amp; INDICES</span>
+              <span>Press [Enter] to select</span>
+            </div>
+            {searchResults.map((item) => (
+              <div
+                key={item.symbol}
+                onClick={() => handleSelect(item.symbol)}
+                className="p-2.5 hover:bg-terminal-hover cursor-pointer border-b border-terminal-border/40 last:border-none flex items-center justify-between transition-colors"
+              >
+                <div>
+                  <div className="font-bold text-white flex items-center gap-2">
+                    {item.symbol}
+                    <span className="text-[10px] text-gray-400 font-normal">{item.sector}</span>
+                  </div>
+                  <div className="text-[11px] text-gray-400 truncate max-w-xs">{item.name}</div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-gray-500" />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Right Controls: Quick Tickers, Disclaimer Pill, Theme Toggle */}
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-2 md:space-x-3">
         {/* Quick Tickers */}
-        <div className="hidden xl:flex items-center space-x-1">
+        <div className="hidden 2xl:flex items-center space-x-1">
           {quickSymbols.map((sym) => (
             <button
               key={sym}
@@ -101,9 +187,9 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Statutory Compliance Badge */}
-        <div className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px]">
+        <div className="hidden xl:flex items-center space-x-1.5 px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px]">
           <ShieldCheck className="w-3.5 h-3.5" />
-          <span>RESEARCH & PAPER TRADING ONLY</span>
+          <span>RESEARCH &amp; PAPER TRADING</span>
         </div>
 
         {/* Theme Toggle */}

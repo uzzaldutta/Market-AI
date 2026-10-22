@@ -268,15 +268,5 @@ class SyntheticFixtureProvider(BaseMarketDataProvider):
         }
 
     def search_symbols(self, query: str) -> List[Dict[str, Any]]:
-        q = query.upper().strip()
-        matches = []
-        for sym, meta in self.BASE_INSTRUMENTS.items():
-            if q in sym or q in meta["name"].upper():
-                matches.append({
-                    "symbol": sym,
-                    "name": meta["name"],
-                    "exchange": "NSE",
-                    "type": meta["type"],
-                    "sector": meta.get("sector")
-                })
-        return matches
+        from ..core.nse_instruments import search_nse_instruments
+        return search_nse_instruments(query)
