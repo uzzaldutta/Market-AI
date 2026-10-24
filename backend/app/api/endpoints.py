@@ -36,12 +36,21 @@ news_engine = NewsIntelligenceEngine()
 daily_rec_engine = DailyRecommendationsEngine()
 
 @router.get("/recommendations/daily")
-def get_daily_recommendations(limit: int = Query(12, ge=1, le=50)):
+def get_daily_recommendations(
+    limit: int = Query(50, ge=1, le=100),
+    asset_class: Optional[str] = Query(None),
+    sector: Optional[str] = Query(None)
+):
     """
     Synthesizes Technicals, AI Model probabilities, F&O positioning,
-    News sentiment, and Stop-Loss invalidation levels to provide daily high-conviction trade setups.
+    News sentiment, and Stop-Loss invalidation levels to provide daily high-conviction trade setups
+    across Equities, Index Options, Stock Options, and Futures.
     """
-    return daily_rec_engine.generate_daily_recommendations(limit=limit)
+    return daily_rec_engine.generate_daily_recommendations(
+        limit=limit,
+        asset_class=asset_class,
+        sector=sector
+    )
 
 @router.get("/overview", response_model=MarketOverviewResponse)
 def get_market_overview():

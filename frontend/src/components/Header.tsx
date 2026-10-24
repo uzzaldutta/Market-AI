@@ -30,12 +30,14 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
   const { favourites, isFavourite, toggle } = useFavourites();
 
   const quickSymbols = favourites.length > 0 
-    ? favourites.slice(0, 7) 
+    ? favourites.slice(0, 8) 
     : ['NIFTY50', 'BANKNIFTY', 'RELIANCE', 'TCS', 'HDFCBANK', 'INFY'];
 
   // Dynamic search filter across all 2,630+ official NSE scrips
@@ -61,7 +63,6 @@ export const Header: React.FC<HeaderProps> = ({
 
       const combined = [...exactMatches, ...prefixMatches, ...substringMatches, ...nameMatches].slice(0, 15);
 
-      // If no exact match, add user typed custom ticker
       if (!combined.some(f => f.symbol === q)) {
         combined.unshift({
           symbol: q,
@@ -94,6 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
     onSelectSymbol(symbol);
     setSearchQuery('');
     setShowDropdown(false);
+    setMobileSearchOpen(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -108,67 +110,68 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="h-16 border-b border-terminal-border bg-terminal-surface/90 backdrop-blur px-4 md:px-6 flex items-center justify-between sticky top-0 z-50">
+    <header className="landscape-compact-header h-14 sm:h-16 border-b border-terminal-border/80 bg-terminal-dark/95 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between sticky top-0 z-50 transition-all select-none">
       {/* Brand & Market Hours Badge */}
-      <div className="flex items-center space-x-3 md:space-x-4">
+      <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
         {/* Mobile menu toggle */}
         {setMobileMenuOpen && (
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-lg bg-terminal-dark border border-terminal-border text-gray-400 hover:text-white transition-colors"
+            className="lg:hidden p-2 rounded-xl bg-terminal-surface border border-terminal-border text-gray-400 hover:text-white transition-colors active:scale-95"
             aria-label="Toggle Navigation"
           >
             {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
         )}
 
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20 shrink-0">
+        <div className="flex items-center space-x-2 cursor-pointer" onClick={() => onSelectSymbol('NIFTY50')}>
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white shadow-md shadow-blue-500/20 shrink-0 text-xs sm:text-sm">
             भ
           </div>
           <div>
-            <h1 className="font-bold text-xs sm:text-base tracking-wide flex items-center gap-1.5 sm:gap-2">
-              BHARAT MARKET
-              <span className="text-[9px] sm:text-[10px] uppercase px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono border border-blue-500/20">
+            <h1 className="font-bold text-xs sm:text-base tracking-tight flex items-center gap-1.5 sm:gap-2 text-white">
+              <span className="hidden xs:inline">BHARAT</span> MARKET
+              <span className="text-[9px] sm:text-[10px] uppercase px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-400 font-mono border border-blue-500/20 font-bold">
                 AI
               </span>
             </h1>
           </div>
         </div>
 
-        {/* Market Status Badge */}
-        <div className="hidden sm:flex items-center space-x-2 bg-terminal-dark/80 px-2 py-1 rounded border border-terminal-border text-[11px] font-mono">
+        {/* Live Market Status Pill (Visible on all screens) */}
+        <div className="flex items-center space-x-1.5 bg-terminal-surface/90 px-2 py-0.5 sm:py-1 rounded-lg border border-terminal-border/70 text-[10px] sm:text-[11px] font-mono">
           <span
-            className={`w-2 h-2 rounded-full ${
+            className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
               isMarketOpen ? 'bg-terminal-green animate-pulse' : 'bg-amber-400'
             }`}
           />
-          <span className="text-gray-400">NSE:</span>
+          <span className="text-gray-400 hidden sm:inline">NSE:</span>
           <span className={isMarketOpen ? 'text-terminal-green font-semibold' : 'text-amber-400 font-semibold'}>
-            {marketStatus} (09:15-15:30 IST)
+            {marketStatus}
           </span>
         </div>
       </div>
 
       {/* Global Search with Live Autocomplete Dropdown */}
-      <div ref={dropdownRef} className="flex-1 max-w-md mx-4 lg:mx-6 relative">
+      <div ref={dropdownRef} className="flex-1 max-w-sm md:max-w-md mx-2 sm:mx-4 relative">
         <div className="relative">
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-2.5 sm:left-3 top-2.5 w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
           <input
+            ref={searchInputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => searchQuery.trim() && setShowDropdown(true)}
             onKeyDown={handleKeyDown}
-            placeholder="Search all NSE stocks (e.g. ZOMATO, TATAPOWER, RELIANCE, NIFTY50)..."
-            className="w-full bg-terminal-dark border border-terminal-border rounded-lg pl-9 pr-4 py-1.5 text-xs text-terminal-text focus:outline-none focus:border-blue-500 placeholder-gray-500 font-mono"
+            placeholder="Search 2,630+ NSE stocks, F&O (e.g. RELIANCE, NIFTY50, ZOMATO)..."
+            className="w-full bg-terminal-surface border border-terminal-border/80 rounded-xl pl-8 sm:pl-9 pr-3 py-1.5 text-xs text-terminal-text focus:outline-none focus:border-blue-500 placeholder-gray-500 font-mono transition-colors"
           />
         </div>
 
         {/* Search Results Dropdown */}
         {showDropdown && searchResults.length > 0 && (
-          <div className="absolute left-0 right-0 top-11 bg-terminal-surface border border-terminal-border rounded-xl shadow-2xl overflow-hidden z-50 font-mono text-xs max-h-80 overflow-y-auto">
-            <div className="p-2 border-b border-terminal-border text-[10px] text-gray-400 bg-terminal-dark/60 flex justify-between">
+          <div className="absolute left-0 right-0 top-11 bg-terminal-surface border border-terminal-border rounded-2xl shadow-2xl overflow-hidden z-50 font-mono text-xs max-h-80 overflow-y-auto">
+            <div className="p-2 border-b border-terminal-border text-[10px] text-gray-400 bg-terminal-dark/80 flex justify-between">
               <span>ALL 2,630+ NSE LISTED SCRIPS &amp; INDICES</span>
               <span>Showing {searchResults.length} matches • [Enter] to open</span>
             </div>
@@ -211,18 +214,18 @@ export const Header: React.FC<HeaderProps> = ({
         )}
       </div>
 
-      {/* Right Controls: Quick Tickers / Favourites, Disclaimer Pill, Theme Toggle */}
-      <div className="flex items-center space-x-2 md:space-x-3">
-        {/* Quick Tickers / Starred Watchlist */}
-        <div className="hidden xl:flex items-center space-x-1">
-          <span className="text-[10px] font-mono text-amber-400 font-semibold flex items-center gap-0.5 mr-1">
-            <Star className="w-3 h-3 fill-amber-400" /> Watch:
+      {/* Right Controls: Quick Tickers / Favourites & Theme Toggle */}
+      <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
+        {/* Quick Tickers / Starred Watchlist (Desktop / Tablet) */}
+        <div className="hidden xl:flex items-center space-x-1 max-w-sm overflow-x-auto no-scrollbar">
+          <span className="text-[10px] font-mono text-amber-400 font-semibold flex items-center gap-0.5 mr-1 shrink-0">
+            <Star className="w-3 h-3 fill-amber-400" />
           </span>
           {quickSymbols.map((sym) => (
             <button
               key={sym}
               onClick={() => onSelectSymbol(sym)}
-              className="px-2 py-0.5 text-[11px] font-mono rounded bg-terminal-dark hover:bg-terminal-border text-gray-300 border border-terminal-border transition-colors flex items-center gap-1"
+              className="px-2 py-0.5 text-[11px] font-mono rounded-md bg-terminal-surface hover:bg-terminal-hover text-gray-300 border border-terminal-border/70 transition-colors shrink-0"
             >
               {sym}
             </button>
@@ -230,15 +233,15 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Statutory Compliance Badge */}
-        <div className="hidden xl:flex items-center space-x-1.5 px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px]">
-          <ShieldCheck className="w-3.5 h-3.5" />
+        <div className="hidden 2xl:flex items-center space-x-1 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px]">
+          <ShieldCheck className="w-3 h-3" />
           <span>RESEARCH &amp; PAPER TRADING</span>
         </div>
 
         {/* Theme Toggle */}
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="p-2 rounded-lg bg-terminal-dark border border-terminal-border text-gray-400 hover:text-terminal-text transition-colors"
+          className="p-1.5 sm:p-2 rounded-xl bg-terminal-surface border border-terminal-border/80 text-gray-400 hover:text-terminal-text transition-colors active:scale-95"
           title="Toggle Theme"
         >
           {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}

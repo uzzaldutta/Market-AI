@@ -77,7 +77,7 @@ export default function TerminalHome() {
           />
 
           {/* Main Content Workspace (With Mobile Safe Area Padding) */}
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 lg:pb-6 space-y-6">
+          <main className="flex-1 overflow-y-auto p-3 sm:p-5 md:p-6 pb-24 lg:pb-8 space-y-4 sm:space-y-6 landscape-scroll-area">
             {activeTab === 'overview' && (
               <MarketOverviewView
                 data={overviewData}
@@ -86,7 +86,13 @@ export default function TerminalHome() {
             )}
 
             {activeTab === 'recommendations' && (
-              <DailyRecommendationsView onSelectSymbol={handleSelectSymbol} />
+              <DailyRecommendationsView
+                onSelectSymbol={handleSelectSymbol}
+                onNavigateToPaper={(sym) => {
+                  setSelectedSymbol(sym);
+                  setActiveTab('paper');
+                }}
+              />
             )}
 
             {activeTab === 'screener' && (
