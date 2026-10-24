@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { fetchPaperAccount, placePaperOrder, fetchQuote, resetPaperAccount } from '../lib/api';
 import { PaperAccount, PaperPosition, PaperOrder } from '../types/market';
 import { useFavourites } from '../context/FavouritesContext';
+import { PriceFlash } from './common/PriceFlash';
 import { 
   Wallet, ShieldCheck, ArrowUpRight, ArrowDownRight, AlertTriangle, 
   Send, RefreshCw, Star, Layers, Activity, History, CheckCircle2, XCircle
@@ -337,7 +338,15 @@ export const PaperTradingView: React.FC = () => {
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="text-gray-400">UNDERLYING ASSET</label>
-                <span className="text-gray-400 text-[10px]">Spot: <strong className="text-white">₹{livePrice.toFixed(2)}</strong></span>
+                <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+                  <span>Spot:</span>
+                  <PriceFlash
+                    value={livePrice}
+                    flashMode="badge"
+                    badgeClassName="text-xs font-bold font-mono"
+                    enableLiveSimulation={true}
+                  />
+                </div>
               </div>
               <input
                 type="text"
@@ -601,9 +610,24 @@ export const PaperTradingView: React.FC = () => {
                             {pos.net_quantity > 0 ? `+${pos.net_quantity}` : pos.net_quantity}
                           </td>
                           <td className="py-2.5 text-right text-gray-400">₹{pos.average_buy_price.toFixed(2)}</td>
-                          <td className="py-2.5 text-right font-semibold">₹{pos.current_market_price.toFixed(2)}</td>
-                          <td className={`py-2.5 text-right font-bold ${isWin ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                            {isWin ? '+' : ''}₹{pos.unrealized_pnl.toFixed(2)} ({isWin ? '+' : ''}{pos.pnl_percentage.toFixed(2)}%)
+                          <td className="py-2.5 text-right">
+                            <PriceFlash
+                              value={pos.current_market_price}
+                              flashMode="cell"
+                              className="font-semibold text-gray-200"
+                              enableLiveSimulation={true}
+                            />
+                          </td>
+                          <td className="py-2.5 text-right">
+                            <PriceFlash
+                              value={pos.unrealized_pnl}
+                              prefix={isWin ? '+₹' : '₹'}
+                              flashMode="cell"
+                              className={`font-bold ${isWin ? 'text-terminal-green' : 'text-terminal-red'}`}
+                            />
+                            <span className={`block text-[10px] ${isWin ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                              ({isWin ? '+' : ''}{pos.pnl_percentage.toFixed(2)}%)
+                            </span>
                           </td>
                           <td className="py-2.5 text-center">
                             <button

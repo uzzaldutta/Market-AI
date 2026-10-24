@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { fetchScreener } from '../lib/api';
 import { ScreenerRow } from '../types/market';
 import { useFavourites } from '../context/FavouritesContext';
+import { PriceFlash } from './common/PriceFlash';
 import { Filter, Download, Search, CheckCircle2, Clock, Ban, HelpCircle, Star } from 'lucide-react';
 
 interface Props {
@@ -217,7 +218,14 @@ export const ScreenerView: React.FC<Props> = ({ onSelectSymbol }) => {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-gray-400">{row.sector}</td>
-                      <td className="py-3 px-4 text-right font-semibold">₹{row.ltp.toFixed(2)}</td>
+                      <td className="py-3 px-4 text-right">
+                        <PriceFlash
+                          value={row.ltp}
+                          flashMode="cell"
+                          className="font-semibold text-gray-200"
+                          enableLiveSimulation={true}
+                        />
+                      </td>
                       <td className={`py-3 px-4 text-right font-semibold ${isUp ? 'text-terminal-green' : 'text-terminal-red'}`}>
                         {isUp ? '+' : ''}{row.change_pct.toFixed(2)}%
                       </td>

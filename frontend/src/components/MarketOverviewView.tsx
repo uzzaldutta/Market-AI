@@ -3,6 +3,7 @@
 import React from 'react';
 import { MarketOverviewData, Quote } from '../types/market';
 import { useFavourites } from '../context/FavouritesContext';
+import { PriceFlash } from './common/PriceFlash';
 import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Activity, BarChart2, Star } from 'lucide-react';
 
 interface Props {
@@ -57,8 +58,13 @@ export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) =>
                   NSE
                 </span>
               </div>
-              <div className="text-2xl font-bold font-mono tracking-tight my-1">
-                ₹{idx.ltp.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              <div className="my-1.5">
+                <PriceFlash
+                  value={idx.ltp}
+                  flashMode="badge"
+                  badgeClassName="text-xl md:text-2xl font-bold font-mono tracking-tight"
+                  enableLiveSimulation={true}
+                />
               </div>
               <div className="flex items-center space-x-2 text-xs font-mono">
                 <span className={`flex items-center ${isUp ? 'text-terminal-green' : 'text-terminal-red'}`}>
@@ -187,7 +193,14 @@ export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) =>
                           <span>{stk.symbol}</span>
                         </div>
                       </td>
-                      <td className="py-2.5 text-right">₹{stk.ltp.toFixed(2)}</td>
+                      <td className="py-2.5 text-right">
+                        <PriceFlash
+                          value={stk.ltp}
+                          flashMode="cell"
+                          className="font-semibold text-gray-200"
+                          enableLiveSimulation={true}
+                        />
+                      </td>
                       <td className="py-2.5 text-right text-terminal-green font-semibold">
                         +{stk.change_pct.toFixed(2)}%
                       </td>
@@ -243,7 +256,14 @@ export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) =>
                           <span>{stk.symbol}</span>
                         </div>
                       </td>
-                      <td className="py-2.5 text-right">₹{stk.ltp.toFixed(2)}</td>
+                      <td className="py-2.5 text-right">
+                        <PriceFlash
+                          value={stk.ltp}
+                          flashMode="cell"
+                          className="font-semibold text-gray-200"
+                          enableLiveSimulation={true}
+                        />
+                      </td>
                       <td className="py-2.5 text-right text-terminal-red font-semibold">
                         {stk.change_pct.toFixed(2)}%
                       </td>

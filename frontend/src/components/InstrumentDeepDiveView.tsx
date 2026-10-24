@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { fetchQuote, fetchCandles, fetchIndicators } from '../lib/api';
 import { Quote, Candle, TechnicalIndicatorsData } from '../types/market';
-import { TrendingUp, BarChart2, ShieldCheck, Activity, Compass, Layers } from 'lucide-react';
+import { PriceFlash } from './common/PriceFlash';
+import { TrendingUp, BarChart2, ShieldCheck, Activity, Compass, Layers, Zap } from 'lucide-react';
 
 interface Props {
   symbol: string;
@@ -19,7 +20,6 @@ export const InstrumentDeepDiveView: React.FC<Props> = ({ symbol }) => {
   useEffect(() => {
     let isMounted = true;
     async function loadData() {
-      setLoading(true);
       try {
         const [q, c, ind] = await Promise.all([
           fetchQuote(symbol),
@@ -38,7 +38,18 @@ export const InstrumentDeepDiveView: React.FC<Props> = ({ symbol }) => {
       }
     }
     loadData();
-    return () => { isMounted = false; };
+    // 6-second polling for live tick updates
+    const timer = setInterval(async () => {
+      try {
+        const q = await fetchQuote(symbol);
+        if (isMounted) setQuote(q);
+      } catch (err) {}
+    }, 6000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
   }, [symbol, timeframe]);
 
   if (loading && !quote) {
@@ -65,6 +76,12 @@ export const InstrumentDeepDiveView: React.FC<Props> = ({ symbol }) => {
 
     const scaleY = (p: number) => height - padding - ((p - minP) / range) * (height - 2 * padding);
     const stepX = (width - 2 * padding) / candles.length;
+
+    const lastCandle = candles[candles.length - 1];
+    const liveLtp = quote?.ltp ?? lastCandle.close;
+    const liveLtpY = scaleY(liveLtp);
+    const isLiveUp = lastCandle.close >= lastCandle.open;
+    const liveColor = isLiveUp ? '#10b981' : '#ef4444';
 
     return (
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-64 bg-terminal-dark rounded-lg">
@@ -109,6 +126,57 @@ export const InstrumentDeepDiveView: React.FC<Props> = ({ symbol }) => {
             </g>
           );
         })}
+
+        {/* Live Real-Time Tick Price Line across chart */}
+        <line
+          x1={padding}
+          y1={liveLtpY}
+          x2={width - padding - 65}
+          y2={liveLtpY}
+          stroke={liveColor}
+          strokeDasharray="2 2"
+          strokeWidth="1.2"
+          opacity="0.85"
+        />
+
+        {/* Pulsating Live Tick Radar Ping */}
+        <circle
+          cx={width - padding - 68}
+          cy={liveLtpY}
+          r="4.5"
+          fill={liveColor}
+          className="animate-ping"
+          opacity="0.75"
+        />
+        <circle
+          cx={width - padding - 68}
+          cy={liveLtpY}
+          r="2.5"
+          fill={liveColor}
+        />
+
+        {/* Real-time LTP Axis Pill with flashing highlight */}
+        <rect
+          x={width - padding - 62}
+          y={liveLtpY - 9}
+          width="62"
+          height="18"
+          rx="3"
+          fill={isLiveUp ? '#064e3b' : '#881337'}
+          stroke={liveColor}
+          strokeWidth="1.2"
+        />
+        <text
+          x={width - padding - 31}
+          y={liveLtpY + 3.5}
+          fill="#ffffff"
+          fontSize="9.5"
+          fontFamily="monospace"
+          fontWeight="bold"
+          textAnchor="middle"
+        >
+          ₹{liveLtp.toFixed(1)}
+        </text>
       </svg>
     );
   };
@@ -131,10 +199,13 @@ export const InstrumentDeepDiveView: React.FC<Props> = ({ symbol }) => {
               {quote?.data_quality || 'DELAYED 15m'}
             </span>
           </div>
-          <div className="flex items-baseline space-x-3">
-            <span className="text-3xl font-bold font-mono text-white">
-              ₹{quote?.ltp.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </span>
+          <div className="flex items-center space-x-3 mt-1">
+            <PriceFlash
+              value={quote?.ltp || 0}
+              flashMode="badge"
+              badgeClassName="text-2xl sm:text-3xl font-bold font-mono"
+              enableLiveSimulation={true}
+            />
             <span className={`text-sm font-mono font-semibold flex items-center ${isUp ? 'text-terminal-green' : 'text-terminal-red'}`}>
               {isUp ? '+' : ''}{quote?.change.toFixed(2)} ({isUp ? '+' : ''}{quote?.change_pct.toFixed(2)}%)
             </span>
@@ -164,12 +235,16 @@ export const InstrumentDeepDiveView: React.FC<Props> = ({ symbol }) => {
 
       {/* 2. Interactive Candlestick Chart Area */}
       <div className="p-5 rounded-xl bg-terminal-surface border border-terminal-border">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div className="flex items-center space-x-2">
             <BarChart2 className="w-4 h-4 text-blue-400" />
             <h2 className="text-xs uppercase font-mono font-semibold tracking-wider text-gray-300">
               Price Action & Intraday Structure ({timeframe})
             </h2>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] text-emerald-400 font-mono">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Live Tick Pulse
+            </div>
           </div>
           {/* Timeframe Buttons */}
           <div className="flex space-x-1 bg-terminal-dark p-1 rounded-lg border border-terminal-border">

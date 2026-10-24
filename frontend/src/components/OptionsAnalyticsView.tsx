@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { fetchOptionChain, fetchStrategyPayoff } from '../lib/api';
 import { OptionChainData, StrategyPayoffData } from '../types/market';
-import { Layers, Zap, Calculator, AlertTriangle, ArrowRight } from 'lucide-react';
+import { PriceFlash } from './common/PriceFlash';
+import { Layers, Zap, Calculator, AlertTriangle, ArrowRight, Activity } from 'lucide-react';
 
 interface Props {
   symbol: string;
@@ -19,7 +20,6 @@ export const OptionsAnalyticsView: React.FC<Props> = ({ symbol }) => {
   useEffect(() => {
     let isMounted = true;
     async function loadChain() {
-      setLoading(true);
       try {
         const res = await fetchOptionChain(symbol, selectedExpiry || undefined);
         if (isMounted) {
@@ -35,7 +35,12 @@ export const OptionsAnalyticsView: React.FC<Props> = ({ symbol }) => {
       }
     }
     loadChain();
-    return () => { isMounted = false; };
+    // 8-second polling for live option ticks
+    const timer = setInterval(loadChain, 8000);
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
   }, [symbol, selectedExpiry]);
 
   useEffect(() => {
@@ -87,8 +92,14 @@ export const OptionsAnalyticsView: React.FC<Props> = ({ symbol }) => {
             <Layers className="w-4 h-4 text-blue-400" />
             <span>FUTURES & OPTIONS DERIVATIVES INTELLIGENCE</span>
           </div>
-          <div className="flex items-baseline space-x-3">
-            <span className="text-2xl font-bold font-mono text-white">{symbol} Spot: ₹{chain?.underlying_price.toFixed(2)}</span>
+          <div className="flex items-center space-x-3 mt-1">
+            <span className="text-gray-400 font-mono text-xs">{symbol} Spot:</span>
+            <PriceFlash
+              value={chain?.underlying_price || 0}
+              flashMode="badge"
+              badgeClassName="text-xl sm:text-2xl font-bold font-mono"
+              enableLiveSimulation={true}
+            />
             <span className="text-xs font-mono text-gray-400">Lot Size: {chain?.lot_size}</span>
           </div>
         </div>
@@ -178,10 +189,24 @@ export const OptionsAnalyticsView: React.FC<Props> = ({ symbol }) => {
 
       {/* 3. Option Chain Matrix (Calls | Strike | Puts) */}
       <div className="rounded-xl bg-terminal-surface border border-terminal-border overflow-hidden">
-        <div className="p-3 bg-terminal-dark border-b border-terminal-border flex justify-between items-center text-xs font-mono">
-          <span className="text-emerald-400 font-bold uppercase tracking-wider">CALLS (CE)</span>
-          <span className="text-gray-300 font-bold uppercase tracking-wider">STRIKE</span>
-          <span className="text-rose-400 font-bold uppercase tracking-wider">PUTS (PE)</span>
+        <div className="p-3 bg-terminal-dark border-b border-terminal-border flex flex-wrap justify-between items-center text-xs font-mono gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-emerald-400 font-bold uppercase tracking-wider">CALLS (CE)</span>
+            <span className="text-[10px] text-gray-500">|</span>
+            <span className="text-gray-300 font-bold uppercase tracking-wider">STRIKE</span>
+            <span className="text-[10px] text-gray-500">|</span>
+            <span className="text-rose-400 font-bold uppercase tracking-wider">PUTS (PE)</span>
+          </div>
+
+          <div className="flex items-center gap-2 bg-terminal-surface/80 px-2.5 py-1 rounded-full border border-terminal-border text-[10px]">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-gray-300 font-mono">Real-Time Tick Flashing Active</span>
+            <span className="text-emerald-400 font-bold">▲ Green (Uptick)</span>
+            <span className="text-rose-400 font-bold">▼ Red (Downtick)</span>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -192,11 +217,11 @@ export const OptionsAnalyticsView: React.FC<Props> = ({ symbol }) => {
                 <th className="py-2 px-2">Delta</th>
                 <th className="py-2 px-2">IV (%)</th>
                 <th className="py-2 px-2">OI</th>
-                <th className="py-2 px-2 font-bold text-gray-300">Call LTP (₹)</th>
+                <th className="py-2 px-2 font-bold text-gray-300">Call LTP</th>
                 {/* Strike Column */}
                 <th className="py-2 px-4 bg-terminal-dark text-white font-bold">Strike</th>
                 {/* Put Columns */}
-                <th className="py-2 px-2 font-bold text-gray-300">Put LTP (₹)</th>
+                <th className="py-2 px-2 font-bold text-gray-300">Put LTP</th>
                 <th className="py-2 px-2">OI</th>
                 <th className="py-2 px-2">IV (%)</th>
                 <th className="py-2 px-2">Delta</th>
@@ -216,7 +241,14 @@ export const OptionsAnalyticsView: React.FC<Props> = ({ symbol }) => {
                     <td className="py-2.5 px-2 text-gray-400">{s.call_delta.toFixed(2)}</td>
                     <td className="py-2.5 px-2 text-gray-400">{s.call_iv.toFixed(1)}%</td>
                     <td className="py-2.5 px-2 text-gray-300">{(s.call_oi / 1000).toFixed(0)}k</td>
-                    <td className="py-2.5 px-2 text-terminal-green font-bold">₹{s.call_ltp.toFixed(2)}</td>
+                    <td className="py-2.5 px-2">
+                      <PriceFlash
+                        value={s.call_ltp}
+                        flashMode="cell"
+                        className="text-terminal-green font-bold"
+                        enableLiveSimulation={true}
+                      />
+                    </td>
 
                     {/* Strike */}
                     <td className={`py-2.5 px-4 font-bold ${isAtm ? 'bg-blue-600 text-white' : 'bg-terminal-dark text-white'}`}>
@@ -225,7 +257,14 @@ export const OptionsAnalyticsView: React.FC<Props> = ({ symbol }) => {
                     </td>
 
                     {/* Put Data */}
-                    <td className="py-2.5 px-2 text-terminal-red font-bold">₹{s.put_ltp.toFixed(2)}</td>
+                    <td className="py-2.5 px-2">
+                      <PriceFlash
+                        value={s.put_ltp}
+                        flashMode="cell"
+                        className="text-terminal-red font-bold"
+                        enableLiveSimulation={true}
+                      />
+                    </td>
                     <td className="py-2.5 px-2 text-gray-300">{(s.put_oi / 1000).toFixed(0)}k</td>
                     <td className="py-2.5 px-2 text-gray-400">{s.put_iv.toFixed(1)}%</td>
                     <td className="py-2.5 px-2 text-gray-400">{s.put_delta.toFixed(2)}</td>

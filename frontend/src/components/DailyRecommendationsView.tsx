@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useFavourites } from '../context/FavouritesContext';
+import { PriceFlash } from './common/PriceFlash';
 import {
   Sparkles,
   ShieldCheck,
@@ -267,8 +268,13 @@ export const DailyRecommendationsView: React.FC<Props> = ({ onSelectSymbol, onNa
                   {/* Right: Key Price Targets */}
                   <div className="flex items-center space-x-4 font-mono text-xs">
                     <div className="text-right">
-                      <div className="text-[10px] text-gray-500">LTP / ENTRY</div>
-                      <div className="font-bold text-white text-sm">₹{rec.entry_price.toFixed(2)}</div>
+                      <div className="text-[10px] text-gray-500 mb-0.5">LTP / ENTRY</div>
+                      <PriceFlash
+                        value={rec.entry_price}
+                        flashMode="badge"
+                        badgeClassName="font-bold text-white text-xs sm:text-sm"
+                        enableLiveSimulation={true}
+                      />
                     </div>
 
                     <div className="text-right bg-rose-500/10 px-2.5 py-1 rounded border border-rose-500/20">
