@@ -106,6 +106,8 @@ interface Props {
   onNavigateToPaper?: (symbol: string, side: 'BUY' | 'SELL', price: number) => void;
 }
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+
 export const DailyRecommendationsView: React.FC<Props> = ({ onSelectSymbol, onNavigateToPaper }) => {
   const [data, setData] = useState<DailyRecommendationsData | null>(null);
   const [assetFilter, setAssetFilter] = useState<string>('ALL');
@@ -128,7 +130,7 @@ export const DailyRecommendationsView: React.FC<Props> = ({ onSelectSymbol, onNa
     async function loadRecs() {
       setLoading(true);
       try {
-        const res = await fetch('http://localhost:8000/api/v1/recommendations/daily?limit=50');
+        const res = await fetch(`${API_BASE}/recommendations/daily?limit=50`);
         if (res.ok) {
           const json = await res.json();
           if (isMounted) {
@@ -177,7 +179,7 @@ export const DailyRecommendationsView: React.FC<Props> = ({ onSelectSymbol, onNa
     };
 
     try {
-      const res = await fetch('http://localhost:8000/api/v1/paper/orders', {
+      const res = await fetch(`${API_BASE}/paper/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
