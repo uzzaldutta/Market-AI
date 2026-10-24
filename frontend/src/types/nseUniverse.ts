@@ -1,120 +1,19 @@
+import nseMasterScrips from '../data/nse_universe.json';
+
 export interface NSEInstrument {
   symbol: string;
   name: string;
   type: string;
   sector: string;
+  series?: string;
+  isin?: string;
   lot_size?: number;
 }
 
-export const NSE_UNIVERSE: NSEInstrument[] = [
-  // Indices
-  { symbol: 'NIFTY50', name: 'NIFTY 50 Index', type: 'INDEX', sector: 'Benchmark' },
-  { symbol: 'BANKNIFTY', name: 'NIFTY Bank Index', type: 'INDEX', sector: 'Banking' },
-  { symbol: 'FINNIFTY', name: 'NIFTY Financial Services', type: 'INDEX', sector: 'Financial' },
-  { symbol: 'MIDCPNIFTY', name: 'NIFTY Midcap Select', type: 'INDEX', sector: 'Midcap' },
-  { symbol: 'INDIAVIX', name: 'India Volatility Index', type: 'INDEX', sector: 'Volatility' },
+// Complete official universe of 2,630+ active NSE equities and benchmark indices
+export const NSE_UNIVERSE: NSEInstrument[] = nseMasterScrips as NSEInstrument[];
 
-  // Top NSE Equities (NIFTY 50 & Broader Market)
-  { symbol: 'RELIANCE', name: 'Reliance Industries Ltd', type: 'EQUITY', sector: 'Energy' },
-  { symbol: 'TCS', name: 'Tata Consultancy Services Ltd', type: 'EQUITY', sector: 'IT' },
-  { symbol: 'HDFCBANK', name: 'HDFC Bank Ltd', type: 'EQUITY', sector: 'Banking' },
-  { symbol: 'ICICIBANK', name: 'ICICI Bank Ltd', type: 'EQUITY', sector: 'Banking' },
-  { symbol: 'INFY', name: 'Infosys Ltd', type: 'EQUITY', sector: 'IT' },
-  { symbol: 'BHARTIARTL', name: 'Bharti Airtel Ltd', type: 'EQUITY', sector: 'Telecom' },
-  { symbol: 'ITC', name: 'ITC Ltd', type: 'EQUITY', sector: 'FMCG' },
-  { symbol: 'SBIN', name: 'State Bank of India', type: 'EQUITY', sector: 'Banking' },
-  { symbol: 'LT', name: 'Larsen & Toubro Ltd', type: 'EQUITY', sector: 'Infrastructure' },
-  { symbol: 'HINDUNILVR', name: 'Hindustan Unilever Ltd', type: 'EQUITY', sector: 'FMCG' },
-  { symbol: 'TATAMOTORS', name: 'Tata Motors Ltd', type: 'EQUITY', sector: 'Automobile' },
-  { symbol: 'MARUTI', name: 'Maruti Suzuki India Ltd', type: 'EQUITY', sector: 'Automobile' },
-  { symbol: 'SUNPHARMA', name: 'Sun Pharmaceutical Industries Ltd', type: 'EQUITY', sector: 'Pharma' },
-  { symbol: 'BAJFINANCE', name: 'Bajaj Finance Ltd', type: 'EQUITY', sector: 'Financial' },
-  { symbol: 'KOTAKBANK', name: 'Kotak Mahindra Bank Ltd', type: 'EQUITY', sector: 'Banking' },
-  { symbol: 'AXISBANK', name: 'Axis Bank Ltd', type: 'EQUITY', sector: 'Banking' },
-  { symbol: 'TITAN', name: 'Titan Company Ltd', type: 'EQUITY', sector: 'Consumer' },
-  { symbol: 'ASIANPAINT', name: 'Asian Paints Ltd', type: 'EQUITY', sector: 'Consumer' },
-  { symbol: 'HCLTECH', name: 'HCL Technologies Ltd', type: 'EQUITY', sector: 'IT' },
-  { symbol: 'WIPRO', name: 'Wipro Ltd', type: 'EQUITY', sector: 'IT' },
-  { symbol: 'NTPC', name: 'NTPC Ltd', type: 'EQUITY', sector: 'Power' },
-  { symbol: 'POWERGRID', name: 'Power Grid Corporation of India', type: 'EQUITY', sector: 'Power' },
-  { symbol: 'ONGC', name: 'Oil & Natural Gas Corporation Ltd', type: 'EQUITY', sector: 'Energy' },
-  { symbol: 'COALINDIA', name: 'Coal India Ltd', type: 'EQUITY', sector: 'Mining' },
-  { symbol: 'BAJAJFINSV', name: 'Bajaj Finserv Ltd', type: 'EQUITY', sector: 'Financial' },
-  { symbol: 'M&M', name: 'Mahindra & Mahindra Ltd', type: 'EQUITY', sector: 'Automobile' },
-  { symbol: 'TATASTEEL', name: 'Tata Steel Ltd', type: 'EQUITY', sector: 'Metals' },
-  { symbol: 'JSWSTEEL', name: 'JSW Steel Ltd', type: 'EQUITY', sector: 'Metals' },
-  { symbol: 'ADANIENT', name: 'Adani Enterprises Ltd', type: 'EQUITY', sector: 'Conglomerate' },
-  { symbol: 'ADANIPORTS', name: 'Adani Ports and SEZ Ltd', type: 'EQUITY', sector: 'Infrastructure' },
-  { symbol: 'GRASIM', name: 'Grasim Industries Ltd', type: 'EQUITY', sector: 'Materials' },
-  { symbol: 'ULTRACEMCO', name: 'UltraTech Cement Ltd', type: 'EQUITY', sector: 'Cement' },
-  { symbol: 'TECHM', name: 'Tech Mahindra Ltd', type: 'EQUITY', sector: 'IT' },
-  { symbol: 'EICHERMOT', name: 'Eicher Motors Ltd', type: 'EQUITY', sector: 'Automobile' },
-  { symbol: 'NESTLEIND', name: 'Nestle India Ltd', type: 'EQUITY', sector: 'FMCG' },
-  { symbol: 'BRITANNIA', name: 'Britannia Industries Ltd', type: 'EQUITY', sector: 'FMCG' },
-  { symbol: 'CIPLA', name: 'Cipla Ltd', type: 'EQUITY', sector: 'Pharma' },
-  { symbol: 'DRREDDY', name: "Dr. Reddy's Laboratories Ltd", type: 'EQUITY', sector: 'Pharma' },
-  { symbol: 'DIVISLAB', name: "Divi's Laboratories Ltd", type: 'EQUITY', sector: 'Pharma' },
-  { symbol: 'APOLLOHOSP', name: 'Apollo Hospitals Enterprise Ltd', type: 'EQUITY', sector: 'Healthcare' },
-  { symbol: 'HINDALCO', name: 'Hindalco Industries Ltd', type: 'EQUITY', sector: 'Metals' },
-  { symbol: 'HEROMOTOCO', name: 'Hero MotoCorp Ltd', type: 'EQUITY', sector: 'Automobile' },
-  { symbol: 'BPCL', name: 'Bharat Petroleum Corporation Ltd', type: 'EQUITY', sector: 'Energy' },
-  { symbol: 'SHRIRAMFIN', name: 'Shriram Finance Ltd', type: 'EQUITY', sector: 'Financial' },
-  { symbol: 'TRENT', name: 'Trent Ltd', type: 'EQUITY', sector: 'Retail' },
-  { symbol: 'BEL', name: 'Bharat Electronics Ltd', type: 'EQUITY', sector: 'Defense' },
-
-  // Midcap, Smallcap & Trending High-Volume Stocks
-  { symbol: 'ZOMATO', name: 'Zomato Ltd', type: 'EQUITY', sector: 'Internet' },
-  { symbol: 'JIOFIN', name: 'Jio Financial Services Ltd', type: 'EQUITY', sector: 'Financial' },
-  { symbol: 'HAL', name: 'Hindustan Aeronautics Ltd', type: 'EQUITY', sector: 'Defense' },
-  { symbol: 'TATAPOWER', name: 'Tata Power Company Ltd', type: 'EQUITY', sector: 'Power' },
-  { symbol: 'VEDL', name: 'Vedanta Ltd', type: 'EQUITY', sector: 'Metals' },
-  { symbol: 'IRFC', name: 'Indian Railway Finance Corporation', type: 'EQUITY', sector: 'Railways' },
-  { symbol: 'RVNL', name: 'Rail Vikas Nigam Ltd', type: 'EQUITY', sector: 'Railways' },
-  { symbol: 'IREDA', name: 'Indian Renewable Energy Dev Agency', type: 'EQUITY', sector: 'Green Energy' },
-  { symbol: 'SUZLON', name: 'Suzlon Energy Ltd', type: 'EQUITY', sector: 'Green Energy' },
-  { symbol: 'BSE', name: 'BSE Ltd (Exchange)', type: 'EQUITY', sector: 'Financial' },
-  { symbol: 'CDSL', name: 'Central Depository Services Ltd', type: 'EQUITY', sector: 'Financial' },
-  { symbol: 'POLYCAB', name: 'Polycab India Ltd', type: 'EQUITY', sector: 'Capital Goods' },
-  { symbol: 'PERSISTENT', name: 'Persistent Systems Ltd', type: 'EQUITY', sector: 'IT' },
-  { symbol: 'COFORGE', name: 'Coforge Ltd', type: 'EQUITY', sector: 'IT' },
-  { symbol: 'LTIM', name: 'LTIMindtree Ltd', type: 'EQUITY', sector: 'IT' },
-  { symbol: 'DLF', name: 'DLF Ltd', type: 'EQUITY', sector: 'Realty' },
-  { symbol: 'GODREJPROP', name: 'Godrej Properties Ltd', type: 'EQUITY', sector: 'Realty' },
-  { symbol: 'LICI', name: 'Life Insurance Corporation of India', type: 'EQUITY', sector: 'Insurance' },
-  { symbol: 'INDUSINDBK', name: 'IndusInd Bank Ltd', type: 'EQUITY', sector: 'Banking' },
-  { symbol: 'BANKBARODA', name: 'Bank of Baroda', type: 'EQUITY', sector: 'Banking' },
-  { symbol: 'PNB', name: 'Punjab National Bank', type: 'EQUITY', sector: 'Banking' },
-  { symbol: 'CANBK', name: 'Canara Bank', type: 'EQUITY', sector: 'Banking' },
-  { symbol: 'IDFCFIRSTB', name: 'IDFC First Bank Ltd', type: 'EQUITY', sector: 'Banking' },
-  { symbol: 'FEDERALBNK', name: 'The Federal Bank Ltd', type: 'EQUITY', sector: 'Banking' },
-  { symbol: 'CHOLAFIN', name: 'Cholamandalam Investment & Finance', type: 'EQUITY', sector: 'Financial' },
-  { symbol: 'MUTHOOTFIN', name: 'Muthoot Finance Ltd', type: 'EQUITY', sector: 'Financial' },
-  { symbol: 'PIDILITIND', name: 'Pidilite Industries Ltd', type: 'EQUITY', sector: 'Chemicals' },
-  { symbol: 'SRF', name: 'SRF Ltd', type: 'EQUITY', sector: 'Chemicals' },
-  { symbol: 'TATACHEM', name: 'Tata Chemicals Ltd', type: 'EQUITY', sector: 'Chemicals' },
-  { symbol: 'DEEPAKNTR', name: 'Deepak Nitrite Ltd', type: 'EQUITY', sector: 'Chemicals' },
-  { symbol: 'HAVELLS', name: 'Havells India Ltd', type: 'EQUITY', sector: 'Consumer' },
-  { symbol: 'VOLTAS', name: 'Voltas Ltd', type: 'EQUITY', sector: 'Consumer' },
-  { symbol: 'DIXON', name: 'Dixon Technologies Ltd', type: 'EQUITY', sector: 'Electronics' },
-  { symbol: 'KALYANKJIL', name: 'Kalyan Jewellers India Ltd', type: 'EQUITY', sector: 'Consumer' },
-  { symbol: 'BHEL', name: 'Bharat Heavy Electricals Ltd', type: 'EQUITY', sector: 'Capital Goods' },
-  { symbol: 'MAZDOCK', name: 'Mazagon Dock Shipbuilders Ltd', type: 'EQUITY', sector: 'Defense' },
-  { symbol: 'COCHINSHIP', name: 'Cochin Shipyard Ltd', type: 'EQUITY', sector: 'Defense' },
-  { symbol: 'PAYTM', name: 'One97 Communications Ltd (Paytm)', type: 'EQUITY', sector: 'Fintech' },
-  { symbol: 'NYKAA', name: 'FSN E-Commerce Ventures Ltd (Nykaa)', type: 'EQUITY', sector: 'Internet' },
-  { symbol: 'POLICYBZR', name: 'PB Fintech Ltd (PolicyBazaar)', type: 'EQUITY', sector: 'Fintech' },
-  { symbol: 'MOTHERSON', name: 'Samvardhana Motherson International', type: 'EQUITY', sector: 'Automobile' },
-  { symbol: 'TVSMOTOR', name: 'TVS Motor Company Ltd', type: 'EQUITY', sector: 'Automobile' },
-  { symbol: 'BALKRISIND', name: 'Balkrishna Industries Ltd', type: 'EQUITY', sector: 'Automobile' },
-  { symbol: 'MRF', name: 'MRF Ltd', type: 'EQUITY', sector: 'Automobile' },
-  { symbol: 'AUROPHARMA', name: 'Aurobindo Pharma Ltd', type: 'EQUITY', sector: 'Pharma' },
-  { symbol: 'LUPIN', name: 'Lupin Ltd', type: 'EQUITY', sector: 'Pharma' },
-  { symbol: 'TORNTPHARM', name: 'Torrent Pharmaceuticals Ltd', type: 'EQUITY', sector: 'Pharma' },
-  { symbol: 'MANAPPURAM', name: 'Manappuram Finance Ltd', type: 'EQUITY', sector: 'Financial' },
-  { symbol: 'ABCAPITAL', name: 'Aditya Birla Capital Ltd', type: 'EQUITY', sector: 'Financial' },
-  { symbol: 'MFSL', name: 'Max Financial Services Ltd', type: 'EQUITY', sector: 'Insurance' },
-  { symbol: 'SBILIFE', name: 'SBI Life Insurance Company Ltd', type: 'EQUITY', sector: 'Insurance' },
-  { symbol: 'HDFCLIFE', name: 'HDFC Life Insurance Company Ltd', type: 'EQUITY', sector: 'Insurance' },
-  { symbol: 'ICICIPRULI', name: 'ICICI Prudential Life Insurance', type: 'EQUITY', sector: 'Insurance' },
-  { symbol: 'ICICIGI', name: 'ICICI Lombard General Insurance', type: 'EQUITY', sector: 'Insurance' }
-];
+// Fast O(1) symbol lookup index
+export const NSE_SYMBOL_MAP = new Map<string, NSEInstrument>(
+  NSE_UNIVERSE.map(item => [item.symbol.toUpperCase(), item])
+);

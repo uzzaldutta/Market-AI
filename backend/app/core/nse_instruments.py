@@ -5,6 +5,9 @@ Any arbitrary NSE ticker can also be dynamically looked up via <SYMBOL>.NS.
 """
 
 from typing import List, Dict, Any, Optional
+import json
+import os
+from pathlib import Path
 
 NSE_UNIVERSE: List[Dict[str, Any]] = [
     # Benchmark & Sectoral Indices
@@ -119,43 +122,60 @@ NSE_UNIVERSE: List[Dict[str, Any]] = [
     {"symbol": "ICICIGI", "name": "ICICI Lombard General Insurance", "type": "EQUITY", "sector": "Insurance", "lot_size": 500},
 ]
 
-# Quick symbol index for O(1) resolution
+# Load complete master universe of 2,630+ official NSE scrips if available
+_master_json = Path(__file__).resolve().parent.parent / "data" / "nse_master_universe.json"
+if _master_json.exists():
+    try:
+        with open(_master_json, "r", encoding="utf-8") as f:
+            NSE_UNIVERSE = json.load(f)
+    except Exception as e:
+        pass
+
+# Quick symbol index for O(1) resolution across all 2,630+ scrips
 NSE_SYMBOL_INDEX = {item["symbol"].upper(): item for item in NSE_UNIVERSE}
 
-def search_nse_instruments(query: str, limit: int = 15) -> List[Dict[str, Any]]:
+def search_nse_instruments(query: str, limit: int = 20) -> List[Dict[str, Any]]:
     """
-    Fast fuzzy search across NSE ticker symbols and company names.
-    If the exact query is not in the predefined index, it still returns a valid
-    dynamic NSE entry so ANY NSE stock (all 2,000+ listed) can be loaded!
+    Fast multi-tier search across all 2,630+ NSE equities, indices, and sectoral series.
+    Matches exact symbol, symbol prefix, substring, and company name.
+    If custom ticker typed, synthesizes dynamic entry so ANY global or newly listed stock can be loaded.
     """
     q = query.upper().strip()
     if not q:
         return NSE_UNIVERSE[:limit]
 
-    matches = []
-    # 1. Exact or prefix symbol match
-    for item in NSE_UNIVERSE:
-        if item["symbol"].startswith(q):
-            matches.append(item)
+    exact_matches = []
+    prefix_matches = []
+    substring_matches = []
+    name_matches = []
 
-    # 2. Substring match in symbol or company name
     for item in NSE_UNIVERSE:
-        if item not in matches and (q in item["symbol"] or q in item["name"].upper()):
-            matches.append(item)
+        sym = item["symbol"]
+        if sym == q:
+            exact_matches.append(item)
+        elif sym.startswith(q):
+            prefix_matches.append(item)
+        elif q in sym:
+            substring_matches.append(item)
+        elif q in item["name"].upper():
+            name_matches.append(item)
 
-    # 3. If no match or user typed a custom ticker, synthesize dynamic entry
-    if not matches or (q not in [m["symbol"] for m in matches]):
+    combined = exact_matches + prefix_matches + substring_matches + name_matches
+
+    # If no exact match or user typed a custom ticker, synthesize dynamic entry
+    if not combined or (q not in [m["symbol"] for m in combined]):
         clean_q = q.replace(".NS", "").replace("^", "")
         if len(clean_q) >= 2:
-            matches.insert(0, {
+            combined.insert(0, {
                 "symbol": clean_q,
-                "name": f"{clean_q} (NSE Listed Stock)",
+                "name": f"{clean_q} (NSE Listed Scrip)",
                 "type": "EQUITY",
                 "sector": "NSE Equities",
+                "series": "EQ",
                 "lot_size": 1
             })
 
-    return matches[:limit]
+    return combined[:limit]
 
 def get_instrument_lot_size(symbol: str) -> int:
     """Returns official lot size for F&O contracts or sensible standard defaults."""

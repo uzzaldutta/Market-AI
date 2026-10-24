@@ -38,24 +38,40 @@ export const Header: React.FC<HeaderProps> = ({
     ? favourites.slice(0, 7) 
     : ['NIFTY50', 'BANKNIFTY', 'RELIANCE', 'TCS', 'HDFCBANK', 'INFY'];
 
-  // Dynamic search filter across NSE stocks
+  // Dynamic search filter across all 2,630+ official NSE scrips
   useEffect(() => {
     const q = searchQuery.trim().toUpperCase();
     if (q.length >= 1) {
-      const filtered = NSE_UNIVERSE.filter(
-        item => item.symbol.includes(q) || item.name.toUpperCase().includes(q)
-      ).slice(0, 8);
+      const exactMatches: any[] = [];
+      const prefixMatches: any[] = [];
+      const substringMatches: any[] = [];
+      const nameMatches: any[] = [];
+
+      for (const item of NSE_UNIVERSE) {
+        if (item.symbol === q) {
+          exactMatches.push(item);
+        } else if (item.symbol.startsWith(q)) {
+          prefixMatches.push(item);
+        } else if (item.symbol.includes(q)) {
+          substringMatches.push(item);
+        } else if (item.name.toUpperCase().includes(q)) {
+          nameMatches.push(item);
+        }
+      }
+
+      const combined = [...exactMatches, ...prefixMatches, ...substringMatches, ...nameMatches].slice(0, 15);
 
       // If no exact match, add user typed custom ticker
-      if (!filtered.some(f => f.symbol === q)) {
-        filtered.unshift({
+      if (!combined.some(f => f.symbol === q)) {
+        combined.unshift({
           symbol: q,
-          name: `${q} (NSE Listed Stock)`,
+          name: `${q} (NSE Listed Scrip)`,
           type: 'EQUITY',
-          sector: 'NSE Equities'
+          sector: 'NSE Equities',
+          series: 'EQ'
         });
       }
-      setSearchResults(filtered);
+      setSearchResults(combined);
       setShowDropdown(true);
     } else {
       setSearchResults([]);
@@ -153,8 +169,8 @@ export const Header: React.FC<HeaderProps> = ({
         {showDropdown && searchResults.length > 0 && (
           <div className="absolute left-0 right-0 top-11 bg-terminal-surface border border-terminal-border rounded-xl shadow-2xl overflow-hidden z-50 font-mono text-xs max-h-80 overflow-y-auto">
             <div className="p-2 border-b border-terminal-border text-[10px] text-gray-400 bg-terminal-dark/60 flex justify-between">
-              <span>ALL NSE EQUITIES &amp; INDICES</span>
-              <span>Press [Enter] to select</span>
+              <span>ALL 2,630+ NSE LISTED SCRIPS &amp; INDICES</span>
+              <span>Showing {searchResults.length} matches • [Enter] to open</span>
             </div>
             {searchResults.map((item) => {
               const isFav = isFavourite(item.symbol);
@@ -177,8 +193,11 @@ export const Header: React.FC<HeaderProps> = ({
                       <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-amber-400 text-amber-400' : ''}`} />
                     </button>
                     <div>
-                      <div className="font-bold text-white flex items-center gap-2">
-                        {item.symbol}
+                      <div className="font-bold text-white flex items-center gap-1.5">
+                        <span>{item.symbol}</span>
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-terminal-dark text-blue-400 border border-blue-500/20 font-semibold">
+                          {item.series || (item.type === 'INDEX' ? 'INDEX' : 'EQ')}
+                        </span>
                         <span className="text-[10px] text-gray-400 font-normal">{item.sector}</span>
                       </div>
                       <div className="text-[11px] text-gray-400 truncate max-w-xs">{item.name}</div>
