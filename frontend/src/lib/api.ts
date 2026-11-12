@@ -222,6 +222,57 @@ export async function fetchOracleAnalysis(
   return res.json();
 }
 
+export async function askCopilot(
+  query: string,
+  contextSymbol?: string,
+  accountEquity: number = 1000000.0
+): Promise<any> {
+  const res = await fetch(`${API_BASE}/copilot/query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query,
+      context_symbol: contextSymbol,
+      account_equity: accountEquity
+    })
+  });
+  if (!res.ok) throw new Error('Failed to query AI Copilot');
+  return res.json();
+}
+
+export async function fetchStockDuel(symbolA: string, symbolB: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/duel/compare?symbol_a=${symbolA}&symbol_b=${symbolB}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to duel ${symbolA} vs ${symbolB}`);
+  return res.json();
+}
+
+export async function fetchBlockDeals(): Promise<any> {
+  const res = await fetch(`${API_BASE}/deals/block-deals`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch institutional block deals');
+  return res.json();
+}
+
+export async function fetchAlertsFeed(): Promise<any> {
+  const res = await fetch(`${API_BASE}/alerts/feed`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch alerts feed');
+  return res.json();
+}
+
+export async function testAlertWebhook(channel: string, destinationUrl?: string, testSymbol = 'RELIANCE'): Promise<any> {
+  const res = await fetch(`${API_BASE}/alerts/test-webhook`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      channel,
+      destination_webhook_url: destinationUrl,
+      test_symbol: testSymbol
+    })
+  });
+  if (!res.ok) throw new Error('Failed to test alert webhook');
+  return res.json();
+}
+
+
 
 
 

@@ -15,12 +15,18 @@ import {
   Newspaper,
   Activity,
   X,
-  MoreHorizontal
+  MoreHorizontal,
+  Bot,
+  Swords,
+  Coins
 } from 'lucide-react';
 
 export type TabType =
   | 'overview'
+  | 'copilot'
   | 'oracle'
+  | 'duel'
+  | 'deals'
   | 'radar'
   | 'recommendations'
   | 'screener'
@@ -47,7 +53,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const menuItems = [
     { id: 'overview', label: 'Market Overview', icon: LayoutDashboard },
-    { id: 'oracle', label: '🧠 Oracle AI Lab', icon: Brain },
+    { id: 'copilot', label: '🤖 AI Market Copilot', icon: Bot },
+    { id: 'oracle', label: '🧠 Oracle AI Lab (Buffett)', icon: Brain },
+    { id: 'duel', label: '⚔️ Stock Duel (Compare)', icon: Swords },
+    { id: 'deals', label: '🐳 Block Deals (> ₹5 Cr)', icon: Coins },
     { id: 'radar', label: '⚡ Fast Alpha Radar', icon: Zap },
     { id: 'recommendations', label: 'AI Daily Recommendations', icon: Sparkles },
     { id: 'screener', label: 'Stock Screener', icon: Filter },
@@ -69,7 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       {/* 1. Desktop Persistent Sidebar */}
       <aside className="hidden lg:flex w-64 border-r border-terminal-border/80 bg-terminal-surface flex-col justify-between shrink-0 h-[calc(100vh-4rem)] sticky top-16 select-none transition-all">
-        <div className="p-3 space-y-1">
+        <div className="p-3 space-y-1 overflow-y-auto no-scrollbar">
           <div className="px-3 py-2 text-[10px] font-semibold tracking-wider text-gray-500 uppercase font-mono">
             Intelligence Modules
           </div>
@@ -172,10 +181,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-terminal-dark/95 backdrop-blur-md border-t border-terminal-border/80 flex items-center justify-around py-1 px-1 safe-pb select-none transition-all">
         {[
           { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+          { id: 'copilot', label: 'Copilot', icon: Bot },
+          { id: 'oracle', label: 'Oracle', icon: Brain },
           { id: 'radar', label: 'Radar', icon: Zap },
-          { id: 'recommendations', label: 'AI Recs', icon: Sparkles },
-          { id: 'instrument', label: 'Charts', icon: TrendingUp },
-          { id: 'options', label: 'F&O', icon: Layers },
+          { id: 'deals', label: 'Deals', icon: Coins },
           { id: 'paper', label: 'Paper', icon: Wallet },
         ].map((item) => {
           const Icon = item.icon;

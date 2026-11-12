@@ -643,6 +643,95 @@ class OracleValuationResponse(BaseModel):
     master_summary: str
     timestamp: str
 
+# --- AI MARKET COPILOT SCHEMAS ---
+class CopilotQueryRequest(BaseModel):
+    query: str
+    context_symbol: Optional[str] = None
+    account_equity: Optional[float] = 1000000.0
+
+class CopilotQueryResponse(BaseModel):
+    query: str
+    intent: str # "STOCK_ANALYSIS", "SCREENER", "PORTFOLIO_RISK", "MARKET_OUTLOOK", "GENERAL"
+    primary_symbol: Optional[str] = None
+    executive_answer: str
+    key_takeaways: List[str]
+    suggested_actions: List[Dict[str, str]]
+    confidence_score: float
+    timestamp: str
+
+# --- STOCK DUEL (PEER COMPARISON) SCHEMAS ---
+class StockDuelMetric(BaseModel):
+    metric_name: str
+    val_a: float
+    val_b: float
+    unit: str
+    winner: str # "A", "B", "TIE"
+    description: str
+
+class StockDuelResponse(BaseModel):
+    symbol_a: str
+    name_a: str
+    ltp_a: float
+    composite_score_a: float
+    verdict_badge_a: str
+
+    symbol_b: str
+    name_b: str
+    ltp_b: float
+    composite_score_b: float
+    verdict_badge_b: str
+
+    winner_symbol: str
+    winner_reason: str
+    metrics: List[StockDuelMetric]
+    timestamp: str
+
+# --- INSTITUTIONAL BLOCK DEALS SCHEMAS ---
+class BlockDealItem(BaseModel):
+    id: str
+    symbol: str
+    company_name: str
+    client_name: str
+    deal_type: str # "BUY", "SELL"
+    quantity: int
+    trade_price: float
+    deal_value_cr: float
+    time_str: str
+    exchange: str
+
+class BlockDealsResponse(BaseModel):
+    timestamp: str
+    total_deals: int
+    total_value_cr: float
+    net_institutional_bias: str # "NET_BUYING", "NET_SELLING", "BALANCED"
+    deals: List[BlockDealItem]
+
+# --- INSTANT ALERTS & WEBHOOK SCHEMAS ---
+class MarketAlertItem(BaseModel):
+    id: str
+    alert_type: str # "PRIME_BUY", "SHORT_SQUEEZE", "GAP_PREDICTION", "STOP_LOSS_WARNING"
+    severity: str # "CRITICAL", "HIGH", "MEDIUM", "INFO"
+    symbol: str
+    title: str
+    message: str
+    time_ago: str
+    action_url: Optional[str] = None
+
+class AlertsFeedResponse(BaseModel):
+    unread_count: int
+    alerts: List[MarketAlertItem]
+
+class WebhookTestRequest(BaseModel):
+    channel: str # "TELEGRAM", "WHATSAPP", "DISCORD", "CUSTOM_WEBHOOK"
+    destination_webhook_url: Optional[str] = None
+    test_symbol: Optional[str] = "RELIANCE"
+
+class WebhookTestResponse(BaseModel):
+    status: str
+    message: str
+    payload_dispatched: Dict[str, Any]
+
+
 
 
 

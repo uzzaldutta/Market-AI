@@ -465,5 +465,80 @@ export interface OracleValuationData {
   timestamp: string;
 }
 
+export interface CopilotQueryResponse {
+  query: string;
+  intent: 'STOCK_ANALYSIS' | 'SCREENER' | 'PORTFOLIO_RISK' | 'MARKET_OUTLOOK' | 'GENERAL';
+  primary_symbol?: string;
+  executive_answer: string;
+  key_takeaways: string[];
+  suggested_actions: Array<{ label: string; action: string }>;
+  confidence_score: number;
+  timestamp: string;
+}
+
+export interface StockDuelMetric {
+  metric_name: string;
+  val_a: number;
+  val_b: number;
+  unit: string;
+  winner: 'A' | 'B' | 'TIE';
+  description: string;
+}
+
+export interface StockDuelResponse {
+  symbol_a: string;
+  name_a: string;
+  ltp_a: number;
+  composite_score_a: number;
+  verdict_badge_a: string;
+  symbol_b: string;
+  name_b: string;
+  ltp_b: number;
+  composite_score_b: number;
+  verdict_badge_b: string;
+  winner_symbol: string;
+  winner_reason: string;
+  metrics: StockDuelMetric[];
+  timestamp: string;
+}
+
+export interface BlockDealItem {
+  id: string;
+  symbol: string;
+  company_name: string;
+  client_name: string;
+  deal_type: 'BUY' | 'SELL';
+  quantity: number;
+  trade_price: number;
+  deal_value_cr: number;
+  time_str: string;
+  exchange: string;
+}
+
+export interface BlockDealsResponse {
+  timestamp: string;
+  total_deals: number;
+  total_value_cr: number;
+  net_institutional_bias: 'NET_BUYING' | 'NET_SELLING' | 'BALANCED';
+  deals: BlockDealItem[];
+}
+
+export interface MarketAlertItem {
+  id: string;
+  alert_type: string;
+  severity: string;
+  symbol: string;
+  title: string;
+  message: string;
+  time_ago: string;
+  action_url?: string;
+}
+
+export interface AlertsFeedResponse {
+  unread_count: number;
+  alerts: MarketAlertItem[];
+}
+
+
 
 

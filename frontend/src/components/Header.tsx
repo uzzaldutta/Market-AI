@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Sun, Moon, ShieldCheck, Activity, Clock, Menu, X, ArrowRight, Star } from 'lucide-react';
+import { Search, Sun, Moon, ShieldCheck, Activity, Clock, Menu, X, ArrowRight, Star, Bell } from 'lucide-react';
 import { NSE_UNIVERSE } from '../types/nseUniverse';
 import { useFavourites } from '../context/FavouritesContext';
+import { AlertCenterModal } from './common/AlertCenterModal';
 
 interface HeaderProps {
   marketStatus: string;
@@ -13,6 +14,7 @@ interface HeaderProps {
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   onSelectSymbol: (s: string) => void;
+  onNavigateTab?: (t: any) => void;
   mobileMenuOpen?: boolean;
   setMobileMenuOpen?: (open: boolean) => void;
 }
@@ -25,12 +27,14 @@ export const Header: React.FC<HeaderProps> = ({
   searchQuery,
   setSearchQuery,
   onSelectSymbol,
+  onNavigateTab,
   mobileMenuOpen,
   setMobileMenuOpen
 }) => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState<boolean>(false);
+  const [alertModalOpen, setAlertModalOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   
@@ -238,6 +242,17 @@ export const Header: React.FC<HeaderProps> = ({
           <span>RESEARCH &amp; PAPER TRADING</span>
         </div>
 
+        {/* Live Signal Alerts Center Bell */}
+        <button
+          onClick={() => setAlertModalOpen(true)}
+          className="relative p-1.5 sm:p-2 rounded-xl bg-terminal-surface border border-terminal-border/80 text-gray-400 hover:text-cyan-400 hover:border-cyan-500/40 transition-colors active:scale-95"
+          title="Alert & Webhook Center"
+        >
+          <Bell className="w-4 h-4" />
+          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-cyan-400" />
+        </button>
+
         {/* Theme Toggle */}
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -247,6 +262,14 @@ export const Header: React.FC<HeaderProps> = ({
           {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
       </div>
+
+      {/* Alert Center & Webhook Tester Modal */}
+      <AlertCenterModal
+        isOpen={alertModalOpen}
+        onClose={() => setAlertModalOpen(false)}
+        onSelectSymbol={onSelectSymbol}
+        onNavigateTab={onNavigateTab}
+      />
     </header>
   );
 };

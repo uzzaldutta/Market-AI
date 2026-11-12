@@ -5,7 +5,10 @@ import { Header } from '../components/Header';
 import { GlobalTickerBar } from '../components/common/GlobalTickerBar';
 import { Sidebar, TabType } from '../components/Sidebar';
 import { MarketOverviewView } from '../components/MarketOverviewView';
+import { AICopilotView } from '../components/AICopilotView';
 import { OracleAILabView } from '../components/OracleAILabView';
+import { StockDuelView } from '../components/StockDuelView';
+import { BlockDealsView } from '../components/BlockDealsView';
 import { FastAlphaRadarView } from '../components/FastAlphaRadarView';
 import { DailyRecommendationsView } from '../components/DailyRecommendationsView';
 import { ScreenerView } from '../components/ScreenerView';
@@ -66,6 +69,7 @@ export default function TerminalHome() {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           onSelectSymbol={handleSelectSymbol}
+          onNavigateTab={(t) => setActiveTab(t as TabType)}
           mobileMenuOpen={mobileMenuOpen}
           setMobileMenuOpen={setMobileMenuOpen}
         />
@@ -91,9 +95,30 @@ export default function TerminalHome() {
               />
             )}
 
+            {activeTab === 'copilot' && (
+              <AICopilotView
+                onSelectSymbol={handleSelectSymbol}
+                onNavigateTab={(t) => setActiveTab(t as TabType)}
+              />
+            )}
+
             {activeTab === 'oracle' && (
               <OracleAILabView
                 onSelectSymbol={handleSelectSymbol}
+              />
+            )}
+
+            {activeTab === 'duel' && (
+              <StockDuelView
+                onSelectSymbol={handleSelectSymbol}
+                onNavigateTab={(t) => setActiveTab(t as TabType)}
+              />
+            )}
+
+            {activeTab === 'deals' && (
+              <BlockDealsView
+                onSelectSymbol={handleSelectSymbol}
+                onNavigateTab={(t) => setActiveTab(t as TabType)}
               />
             )}
 

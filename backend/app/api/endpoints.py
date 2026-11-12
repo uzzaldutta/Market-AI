@@ -16,7 +16,10 @@ from ..schemas.market import (
     GEXProfileResponse, VolumeProfileResponse,
     KellySizingRequest, KellySizingResponse,
     FastAlphaRadarResponse, StockTimingAnalysisResponse,
-    GlobalIndicesResponse, OracleValuationResponse
+    GlobalIndicesResponse, OracleValuationResponse,
+    CopilotQueryRequest, CopilotQueryResponse,
+    StockDuelResponse, BlockDealsResponse,
+    AlertsFeedResponse, WebhookTestRequest, WebhookTestResponse
 )
 from ..providers.manager import get_market_data_provider
 from ..core.nse_instruments import NSE_SYMBOL_INDEX, search_nse_instruments
@@ -38,6 +41,10 @@ from ..engine.fast_alpha_radar import fast_alpha_radar
 from ..engine.timing_engine import StockTimingEngine
 from ..engine.global_markets import global_markets_engine
 from ..engine.oracle_valuation import oracle_valuation_engine
+from ..engine.copilot_engine import copilot_engine
+from ..engine.stock_duel import stock_duel_engine
+from ..engine.block_deals import block_deals_engine
+from ..engine.alerts_engine import alerts_engine
 
 router = APIRouter()
 
@@ -358,6 +365,43 @@ def get_oracle_valuation(
         symbol=symbol,
         custom_growth_rate=growth_rate_pct,
         custom_discount_rate=discount_rate_pct
+    )
+
+# --- AI COPILOT & ADVANCED INSTITUTIONAL ENDPOINTS ---
+@router.post("/copilot/query", response_model=CopilotQueryResponse)
+def query_ai_copilot(req: CopilotQueryRequest):
+    """Conversational natural-language institutional analyst for any stock, portfolio stress testing, and screening."""
+    return copilot_engine.process_query(
+        query=req.query,
+        context_symbol=req.context_symbol,
+        account_equity=req.account_equity or 1000000.0
+    )
+
+@router.get("/duel/compare", response_model=StockDuelResponse)
+def compare_stocks(
+    symbol_a: str = Query("HDFCBANK"),
+    symbol_b: str = Query("ICICIBANK")
+):
+    """Pits two stocks head-to-head across DCF Valuation, Moat, ROIC, and declares an algorithmic winner."""
+    return stock_duel_engine.duel(symbol_a=symbol_a, symbol_b=symbol_b)
+
+@router.get("/deals/block-deals", response_model=BlockDealsResponse)
+def get_block_deals():
+    """Institutional dark pool and block deal radar (> ₹5 Cr) with verified client attribution."""
+    return block_deals_engine.get_block_deals()
+
+@router.get("/alerts/feed", response_model=AlertsFeedResponse)
+def get_alerts_feed():
+    """Real-time in-app notification center for Prime Buy zones, Short Squeezes, and Gap forecasts."""
+    return alerts_engine.get_alerts_feed()
+
+@router.post("/alerts/test-webhook", response_model=WebhookTestResponse)
+def test_webhook_dispatch(req: WebhookTestRequest):
+    """Tests automated webhook dispatching to Telegram, WhatsApp, Discord, or custom URLs."""
+    return alerts_engine.test_webhook_dispatch(
+        channel=req.channel,
+        destination_url=req.destination_webhook_url,
+        test_symbol=req.test_symbol or "RELIANCE"
     )
 
 @router.get("/health")
