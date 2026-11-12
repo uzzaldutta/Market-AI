@@ -4,6 +4,7 @@ import React from 'react';
 import {
   LayoutDashboard,
   Sparkles,
+  Zap,
   Filter,
   TrendingUp,
   Cpu,
@@ -18,6 +19,7 @@ import {
 
 export type TabType =
   | 'overview'
+  | 'radar'
   | 'recommendations'
   | 'screener'
   | 'instrument'
@@ -43,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const menuItems = [
     { id: 'overview', label: 'Market Overview', icon: LayoutDashboard },
+    { id: 'radar', label: '⚡ Fast Alpha Radar', icon: Zap },
     { id: 'recommendations', label: 'AI Daily Recommendations', icon: Sparkles },
     { id: 'screener', label: 'Stock Screener', icon: Filter },
     { id: 'instrument', label: 'Technical Analysis', icon: TrendingUp },
@@ -166,8 +169,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-terminal-dark/95 backdrop-blur-md border-t border-terminal-border/80 flex items-center justify-around py-1 px-1 safe-pb select-none transition-all">
         {[
           { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+          { id: 'radar', label: 'Radar', icon: Zap },
           { id: 'recommendations', label: 'AI Recs', icon: Sparkles },
-          { id: 'screener', label: 'Screener', icon: Filter },
           { id: 'instrument', label: 'Charts', icon: TrendingUp },
           { id: 'options', label: 'F&O', icon: Layers },
           { id: 'paper', label: 'Paper', icon: Wallet },

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { Sidebar, TabType } from '../components/Sidebar';
 import { MarketOverviewView } from '../components/MarketOverviewView';
+import { FastAlphaRadarView } from '../components/FastAlphaRadarView';
 import { DailyRecommendationsView } from '../components/DailyRecommendationsView';
 import { ScreenerView } from '../components/ScreenerView';
 import { InstrumentDeepDiveView } from '../components/InstrumentDeepDiveView';
@@ -82,6 +83,16 @@ export default function TerminalHome() {
               <MarketOverviewView
                 data={overviewData}
                 onSelectSymbol={handleSelectSymbol}
+              />
+            )}
+
+            {activeTab === 'radar' && (
+              <FastAlphaRadarView
+                onSelectSymbol={handleSelectSymbol}
+                onNavigateToPaper={(sym) => {
+                  setSelectedSymbol(sym);
+                  setActiveTab('paper');
+                }}
               />
             )}
 

@@ -437,4 +437,36 @@ class KellySizingResponse(BaseModel):
     max_loss_budget_inr: float = 0.0
     message: Optional[str] = None
 
+# --- FAST ALPHA RADAR SCHEMAS ---
+class FastAlphaSignalItem(BaseModel):
+    id: str
+    symbol: str
+    name: str
+    sector: str
+    strategy_type: str
+    strategy_badge: str
+    direction: str
+    confidence_score: float
+    ltp: float
+    entry_price: float
+    stop_loss: float
+    stop_loss_pct: float
+    target_price: float
+    target_pct: float
+    risk_reward_ratio: float
+    lot_size: int
+    trigger_metric: str
+    signal_thesis: str
+    detected_at: str
+
+class FastAlphaRadarResponse(BaseModel):
+    timestamp: str
+    scan_time: str
+    benchmark: str
+    benchmark_change_pct: float
+    total_signals: int
+    strategies_covered: List[str]
+    signals: List[FastAlphaSignalItem]
+
+
 

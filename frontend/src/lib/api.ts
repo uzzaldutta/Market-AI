@@ -184,3 +184,11 @@ export async function calculateKellySizing(payload: any): Promise<any> {
   return res.json();
 }
 
+export async function fetchFastAlphaRadar(strategy?: string): Promise<any> {
+  const url = strategy ? `${API_BASE}/alpha/radar?strategy=${strategy}` : `${API_BASE}/alpha/radar`;
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch fast alpha radar');
+  return res.json();
+}
+
+

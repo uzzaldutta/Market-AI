@@ -14,7 +14,8 @@ from ..schemas.market import (
     ScreenerFilterRequest, ScreenerResponse, NewsItemResponse,
     FavouriteToggleRequest, FavouriteItemResponse,
     GEXProfileResponse, VolumeProfileResponse,
-    KellySizingRequest, KellySizingResponse
+    KellySizingRequest, KellySizingResponse,
+    FastAlphaRadarResponse
 )
 from ..providers.manager import get_market_data_provider
 from ..core.nse_instruments import NSE_SYMBOL_INDEX, search_nse_instruments
@@ -32,6 +33,7 @@ from ..engine.volume_profile import volume_engine
 from ..engine.participant_oi import participant_oi_engine
 from ..engine.sector_rotation import sector_rotation_engine
 from ..engine.risk_allocator import risk_allocator
+from ..engine.fast_alpha_radar import fast_alpha_radar
 
 router = APIRouter()
 
@@ -301,6 +303,17 @@ def calculate_risk_kelly_sizing(req: KellySizingRequest):
         lot_size=req.lot_size,
         max_capital_risk_pct=req.max_capital_risk_pct
     )
+
+@router.get("/alpha/radar", response_model=FastAlphaRadarResponse)
+def get_fast_alpha_radar(strategy: Optional[str] = Query(None)):
+    """
+    Sub-10ms Fast Alpha Radar scanning:
+    - Zero-Lag Intraday Relative Strength (vs NIFTY 50)
+    - 15-Minute VWAP Opening Range Breakouts (ORB)
+    - Intraday Open Interest Velocity (Short Squeeze Detection)
+    - Z-Score Statistical Arbitrage & Mean Reversion
+    """
+    return fast_alpha_radar.scan_fast_alpha(signal_filter=strategy)
 
 @router.get("/health")
 def get_health_status():
