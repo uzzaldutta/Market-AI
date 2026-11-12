@@ -93,6 +93,9 @@ export async function placePaperOrder(order: any): Promise<any> {
   return res.json();
 }
 
+export const submitPaperOrder = placePaperOrder;
+
+
 export async function runBacktest(req: any): Promise<any> {
   const res = await fetch(`${API_BASE}/backtest`, {
     method: 'POST',
@@ -190,5 +193,12 @@ export async function fetchFastAlphaRadar(strategy?: string): Promise<any> {
   if (!res.ok) throw new Error('Failed to fetch fast alpha radar');
   return res.json();
 }
+
+export async function fetchStockTimingAnalysis(symbol: string, timeframe = '15m'): Promise<any> {
+  const res = await fetch(`${API_BASE}/timing/${symbol}?timeframe=${timeframe}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch stock timing analysis for ${symbol}`);
+  return res.json();
+}
+
 
 

@@ -264,3 +264,83 @@ export interface NewsItem {
   affected_symbols: string[];
   impact_severity: string;
 }
+
+export interface NewsCatalyst {
+  id: string;
+  headline: string;
+  source: string;
+  url?: string;
+  time_ago: string;
+  category: string;
+  sentiment: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+  sentiment_score: number;
+  impact_level: 'HIGH' | 'MEDIUM' | 'LOW';
+}
+
+export interface NewsTimingImpact {
+  aggregated_sentiment: number;
+  sentiment_label: string;
+  total_sources_scanned: number;
+  primary_catalyst?: string;
+  event_risk_flag: boolean;
+  event_warning?: string;
+  timing_guidance: string;
+}
+
+export interface TradeTimingLevels {
+  buy_zone_min: number;
+  buy_zone_max: number;
+  stop_loss: number;
+  stop_loss_pct: number;
+  target_1: number;
+  target_1_pct: number;
+  target_2: number;
+  target_2_pct: number;
+  risk_reward_ratio: number;
+  breakeven_trigger: number;
+  trailing_stop_rule: string;
+}
+
+export interface TimingChecklistItem {
+  name: string;
+  passed: boolean;
+  description: string;
+}
+
+export interface TimingVerdict {
+  status_code: 'PRIME_BUY' | 'WAIT_PULLBACK' | 'OVEREXTENDED' | 'HARVEST_PROFIT' | 'EVENT_HOLD';
+  status_label: string;
+  status_color: string;
+  optimal_session_window: string;
+  current_session_phase: string;
+  order_action_type: string;
+  readiness_score: number;
+  timing_thesis: string;
+  trigger_checklist: TimingChecklistItem[];
+}
+
+export interface StockTimingAnalysisData {
+  symbol: string;
+  name: string;
+  sector: string;
+  ltp: number;
+  change: number;
+  change_pct: number;
+  vwap: number;
+  day_high: number;
+  day_low: number;
+  candles: Candle[];
+  timing: TimingVerdict;
+  trade_levels: TradeTimingLevels;
+  news_impact: NewsTimingImpact;
+  recent_news: NewsCatalyst[];
+  quantitative_scores: {
+    technical_trend_score: number;
+    news_catalyst_score: number;
+    orderflow_absorption_score: number;
+    gamma_regime_score: number;
+    optimal_kelly_fraction: number;
+  };
+  timestamp: string;
+}
+

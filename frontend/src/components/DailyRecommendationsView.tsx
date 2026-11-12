@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useFavourites } from '../context/FavouritesContext';
 import { PriceFlash } from './common/PriceFlash';
+import { StockTimingAnalysisModal } from './StockTimingAnalysisModal';
 import {
   Sparkles,
   ShieldCheck,
@@ -122,6 +123,7 @@ export const DailyRecommendationsView: React.FC<Props> = ({ onSelectSymbol, onNa
   const [orderLots, setOrderLots] = useState<number>(1);
   const [orderStatusMessage, setOrderStatusMessage] = useState<string | null>(null);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState<boolean>(false);
+  const [selectedTimingSymbol, setSelectedTimingSymbol] = useState<string | null>(null);
 
   const { isFavourite, toggle } = useFavourites();
 
@@ -488,6 +490,16 @@ export const DailyRecommendationsView: React.FC<Props> = ({ onSelectSymbol, onNa
                       </div>
                     </div>
 
+                    {/* Action: ⏱️ Timing & Chart Analysis */}
+                    <button
+                      onClick={() => setSelectedTimingSymbol(rec.symbol)}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs font-mono shadow-md flex items-center gap-1.5 transition-all active:scale-95"
+                      title="Analyze best time to buy/sell, chart zones & news catalysts"
+                    >
+                      <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Timing & Chart</span>
+                    </button>
+
                     {/* Action: ⚡ Instant Paper Trade Button */}
                     <button
                       onClick={() => setOrderModalRec(rec)}
@@ -815,6 +827,14 @@ export const DailyRecommendationsView: React.FC<Props> = ({ onSelectSymbol, onNa
             </div>
           </div>
         </div>
+      )}
+
+      {/* Stock Timing & Chart Intelligence Modal */}
+      {selectedTimingSymbol && (
+        <StockTimingAnalysisModal
+          symbol={selectedTimingSymbol}
+          onClose={() => setSelectedTimingSymbol(null)}
+        />
       )}
     </div>
   );

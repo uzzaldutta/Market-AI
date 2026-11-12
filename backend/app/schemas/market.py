@@ -468,5 +468,74 @@ class FastAlphaRadarResponse(BaseModel):
     strategies_covered: List[str]
     signals: List[FastAlphaSignalItem]
 
+# --- STOCK TIMING & NEWS ENGINE SCHEMAS ---
+class NewsCatalystItem(BaseModel):
+    id: str
+    headline: str
+    source: str # e.g. "Economic Times", "Moneycontrol", "Livemint", "NSE Disclosures"
+    url: Optional[str] = None
+    time_ago: str
+    category: str # "EARNINGS", "ORDERS", "MACRO", "GOVERNANCE", "REGULATORY"
+    sentiment: str # "BULLISH", "BEARISH", "NEUTRAL"
+    sentiment_score: float # -1.0 to 1.0
+    impact_level: str # "HIGH", "MEDIUM", "LOW"
+
+class NewsTimingImpact(BaseModel):
+    aggregated_sentiment: float
+    sentiment_label: str
+    total_sources_scanned: int
+    primary_catalyst: Optional[str] = None
+    event_risk_flag: bool = False
+    event_warning: Optional[str] = None
+    timing_guidance: str
+
+class TradeTimingLevels(BaseModel):
+    buy_zone_min: float
+    buy_zone_max: float
+    stop_loss: float
+    stop_loss_pct: float
+    target_1: float
+    target_1_pct: float
+    target_2: float
+    target_2_pct: float
+    risk_reward_ratio: float
+    breakeven_trigger: float
+    trailing_stop_rule: str
+
+class TimingChecklistItem(BaseModel):
+    name: str
+    passed: bool
+    description: str
+
+class TimingVerdict(BaseModel):
+    status_code: str # "PRIME_BUY", "WAIT_PULLBACK", "OVEREXTENDED", "HARVEST_PROFIT", "EVENT_HOLD"
+    status_label: str
+    status_color: str # "emerald", "amber", "rose", "cyan", "purple"
+    optimal_session_window: str
+    current_session_phase: str
+    order_action_type: str
+    readiness_score: float # 0 - 100
+    timing_thesis: str
+    trigger_checklist: List[TimingChecklistItem]
+
+class StockTimingAnalysisResponse(BaseModel):
+    symbol: str
+    name: str
+    sector: str
+    ltp: float
+    change: float
+    change_pct: float
+    vwap: float
+    day_high: float
+    day_low: float
+    candles: List[CandleItem]
+    timing: TimingVerdict
+    trade_levels: TradeTimingLevels
+    news_impact: NewsTimingImpact
+    recent_news: List[NewsCatalystItem]
+    quantitative_scores: Dict[str, float]
+    timestamp: str
+
+
 
 

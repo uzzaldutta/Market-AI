@@ -15,7 +15,7 @@ from ..schemas.market import (
     FavouriteToggleRequest, FavouriteItemResponse,
     GEXProfileResponse, VolumeProfileResponse,
     KellySizingRequest, KellySizingResponse,
-    FastAlphaRadarResponse
+    FastAlphaRadarResponse, StockTimingAnalysisResponse
 )
 from ..providers.manager import get_market_data_provider
 from ..core.nse_instruments import NSE_SYMBOL_INDEX, search_nse_instruments
@@ -34,6 +34,7 @@ from ..engine.participant_oi import participant_oi_engine
 from ..engine.sector_rotation import sector_rotation_engine
 from ..engine.risk_allocator import risk_allocator
 from ..engine.fast_alpha_radar import fast_alpha_radar
+from ..engine.timing_engine import StockTimingEngine
 
 router = APIRouter()
 
@@ -43,6 +44,7 @@ signal_engine = SignalEngine()
 screener_engine = ScreenerEngine()
 news_engine = NewsIntelligenceEngine()
 daily_rec_engine = DailyRecommendationsEngine()
+timing_engine = StockTimingEngine()
 
 @router.get("/recommendations/daily")
 def get_daily_recommendations(
@@ -314,6 +316,17 @@ def get_fast_alpha_radar(strategy: Optional[str] = Query(None)):
     - Z-Score Statistical Arbitrage & Mean Reversion
     """
     return fast_alpha_radar.scan_fast_alpha(signal_filter=strategy)
+
+@router.get("/timing/{symbol}", response_model=StockTimingAnalysisResponse)
+def get_stock_timing_analysis(
+    symbol: str,
+    timeframe: str = Query("15m", pattern="^(5m|15m|1H|1D)$")
+):
+    """
+    Evaluates precision Buy/Sell timing, visual trade overlay levels (Buy Zone, Stop Loss, T1, T2),
+    intraday liquidity session windows, and multi-source financial news catalysts.
+    """
+    return timing_engine.analyze_stock_timing(symbol=symbol, timeframe=timeframe)
 
 @router.get("/health")
 def get_health_status():
