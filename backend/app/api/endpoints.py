@@ -15,7 +15,8 @@ from ..schemas.market import (
     FavouriteToggleRequest, FavouriteItemResponse,
     GEXProfileResponse, VolumeProfileResponse,
     KellySizingRequest, KellySizingResponse,
-    FastAlphaRadarResponse, StockTimingAnalysisResponse
+    FastAlphaRadarResponse, StockTimingAnalysisResponse,
+    GlobalIndicesResponse
 )
 from ..providers.manager import get_market_data_provider
 from ..core.nse_instruments import NSE_SYMBOL_INDEX, search_nse_instruments
@@ -35,6 +36,7 @@ from ..engine.sector_rotation import sector_rotation_engine
 from ..engine.risk_allocator import risk_allocator
 from ..engine.fast_alpha_radar import fast_alpha_radar
 from ..engine.timing_engine import StockTimingEngine
+from ..engine.global_markets import global_markets_engine
 
 router = APIRouter()
 
@@ -327,6 +329,18 @@ def get_stock_timing_analysis(
     intraday liquidity session windows, and multi-source financial news catalysts.
     """
     return timing_engine.analyze_stock_timing(symbol=symbol, timeframe=timeframe)
+
+@router.get("/global-indices", response_model=GlobalIndicesResponse)
+def get_global_indices():
+    """
+    Global Macro Telemetry:
+    - GIFT NIFTY Opening Gap Predictor
+    - Wall Street: S&P 500, NASDAQ 100, Dow Jones, Russell 2000
+    - Asia-Pacific: Nikkei 225, Hang Seng, Shanghai Composite, KOSPI
+    - Europe: FTSE 100, DAX 40, CAC 40
+    - Commodities & Currencies: Brent Crude, WTI Crude, USD/INR, DXY Dollar Index, Gold, Silver, Yields
+    """
+    return global_markets_engine.get_global_indices()
 
 @router.get("/health")
 def get_health_status():

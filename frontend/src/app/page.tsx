@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
+import { GlobalTickerBar } from '../components/common/GlobalTickerBar';
 import { Sidebar, TabType } from '../components/Sidebar';
 import { MarketOverviewView } from '../components/MarketOverviewView';
 import { FastAlphaRadarView } from '../components/FastAlphaRadarView';
@@ -67,6 +68,9 @@ export default function TerminalHome() {
           mobileMenuOpen={mobileMenuOpen}
           setMobileMenuOpen={setMobileMenuOpen}
         />
+
+        {/* Real-Time Global Markets & Macro Ticker Strip */}
+        <GlobalTickerBar />
 
         <div className="flex-1 flex overflow-hidden">
           {/* Navigation Sidebar (Desktop + Mobile Drawer + Bottom Nav) */}

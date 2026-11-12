@@ -344,3 +344,45 @@ export interface StockTimingAnalysisData {
   timestamp: string;
 }
 
+export interface GlobalIndexItem {
+  symbol: string;
+  name: string;
+  region: 'INDIA_OFFSHORE' | 'AMERICAS' | 'ASIA_PACIFIC' | 'EUROPE' | 'COMMODITIES_CURRENCIES';
+  category: 'INDEX' | 'COMMODITY' | 'CURRENCY' | 'BOND';
+  flag: string;
+  currency: string;
+  ltp: number;
+  change: number;
+  change_pct: number;
+  high: number;
+  low: number;
+  sparkline: number[];
+  market_status: 'OPEN' | 'CLOSED';
+  last_updated: string;
+}
+
+export interface GapPrediction {
+  gift_nifty_ltp: number;
+  nifty50_previous_close: number;
+  gap_points: number;
+  gap_pct: number;
+  gap_bias: 'STRONG_GAP_UP' | 'MILD_GAP_UP' | 'FLAT' | 'MILD_GAP_DOWN' | 'STRONG_GAP_DOWN';
+  pre_market_advice: string;
+}
+
+export interface GlobalIndicesData {
+  timestamp: string;
+  global_sentiment: 'RISK_ON_BULLISH' | 'NEUTRAL_MIXED' | 'RISK_OFF_BEARISH';
+  sentiment_score: number;
+  gap_prediction: GapPrediction;
+  indices: GlobalIndexItem[];
+  categories: {
+    INDIA_OFFSHORE: GlobalIndexItem[];
+    AMERICAS: GlobalIndexItem[];
+    ASIA_PACIFIC: GlobalIndexItem[];
+    EUROPE: GlobalIndexItem[];
+    COMMODITIES_CURRENCIES: GlobalIndexItem[];
+  };
+}
+
+

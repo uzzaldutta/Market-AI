@@ -200,5 +200,12 @@ export async function fetchStockTimingAnalysis(symbol: string, timeframe = '15m'
   return res.json();
 }
 
+export async function fetchGlobalIndices(): Promise<any> {
+  const res = await fetch(`${API_BASE}/global-indices`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch global indices');
+  return res.json();
+}
+
+
 
 

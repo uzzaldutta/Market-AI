@@ -536,6 +536,40 @@ class StockTimingAnalysisResponse(BaseModel):
     quantitative_scores: Dict[str, float]
     timestamp: str
 
+# --- GLOBAL INDICES & MACRO SCHEMAS ---
+class GlobalIndexItem(BaseModel):
+    symbol: str
+    name: str
+    region: str # "INDIA_OFFSHORE", "AMERICAS", "ASIA_PACIFIC", "EUROPE", "COMMODITIES_CURRENCIES"
+    category: str # "INDEX", "COMMODITY", "CURRENCY", "BOND"
+    flag: str # "🇮🇳", "🇺🇸", "🇯🇵", "🇩🇪", "🇬🇧", "🛢️", "💵", "🥇"
+    currency: str # "USD", "INR", "pts", "%"
+    ltp: float
+    change: float
+    change_pct: float
+    high: float
+    low: float
+    sparkline: List[float] = []
+    market_status: str # "OPEN", "CLOSED"
+    last_updated: str
+
+class GapPrediction(BaseModel):
+    gift_nifty_ltp: float
+    nifty50_previous_close: float
+    gap_points: float
+    gap_pct: float
+    gap_bias: str # "STRONG_GAP_UP", "MILD_GAP_UP", "FLAT", "MILD_GAP_DOWN", "STRONG_GAP_DOWN"
+    pre_market_advice: str
+
+class GlobalIndicesResponse(BaseModel):
+    timestamp: str
+    global_sentiment: str # "RISK_ON_BULLISH", "NEUTRAL_MIXED", "RISK_OFF_BEARISH"
+    sentiment_score: float # -1.0 to +1.0
+    gap_prediction: GapPrediction
+    indices: List[GlobalIndexItem]
+    categories: Dict[str, List[GlobalIndexItem]]
+
+
 
 
 
