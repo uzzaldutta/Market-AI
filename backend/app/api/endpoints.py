@@ -16,7 +16,7 @@ from ..schemas.market import (
     GEXProfileResponse, VolumeProfileResponse,
     KellySizingRequest, KellySizingResponse,
     FastAlphaRadarResponse, StockTimingAnalysisResponse,
-    GlobalIndicesResponse
+    GlobalIndicesResponse, OracleValuationResponse
 )
 from ..providers.manager import get_market_data_provider
 from ..core.nse_instruments import NSE_SYMBOL_INDEX, search_nse_instruments
@@ -37,6 +37,7 @@ from ..engine.risk_allocator import risk_allocator
 from ..engine.fast_alpha_radar import fast_alpha_radar
 from ..engine.timing_engine import StockTimingEngine
 from ..engine.global_markets import global_markets_engine
+from ..engine.oracle_valuation import oracle_valuation_engine
 
 router = APIRouter()
 
@@ -341,6 +342,23 @@ def get_global_indices():
     - Commodities & Currencies: Brent Crude, WTI Crude, USD/INR, DXY Dollar Index, Gold, Silver, Yields
     """
     return global_markets_engine.get_global_indices()
+
+@router.get("/oracle/analyze/{symbol}", response_model=OracleValuationResponse)
+def get_oracle_valuation(
+    symbol: str,
+    growth_rate_pct: Optional[float] = Query(None, ge=1.0, le=60.0),
+    discount_rate_pct: Optional[float] = Query(None, ge=6.0, le=25.0)
+):
+    """
+    Oracle AI Multi-Agent Valuation Engine:
+    Autonomous institutional synthesis of Warren Buffett, Benjamin Graham,
+    Peter Lynch, Jim Simons, and Stanley Druckenmiller for ANY manually entered stock.
+    """
+    return oracle_valuation_engine.analyze_stock(
+        symbol=symbol,
+        custom_growth_rate=growth_rate_pct,
+        custom_discount_rate=discount_rate_pct
+    )
 
 @router.get("/health")
 def get_health_status():

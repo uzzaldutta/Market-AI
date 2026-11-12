@@ -569,6 +569,81 @@ class GlobalIndicesResponse(BaseModel):
     indices: List[GlobalIndexItem]
     categories: Dict[str, List[GlobalIndexItem]]
 
+# --- ORACLE AI LEGENDARY VALUATION SCHEMAS ---
+class InversionCheckItem(BaseModel):
+    check_name: str
+    passed: bool
+    description: str
+
+class PillarBuffettMoat(BaseModel):
+    fair_value_dcf: float
+    margin_of_safety_pct: float
+    bargain_buy_price: float
+    moat_score: float # 0 - 100
+    moat_rating: str # "WIDE_MOAT", "NARROW_MOAT", "NO_MOAT"
+    roic_pct: float
+    roe_pct: float
+    fcf_conversion_pct: float
+    debt_to_equity: float
+    owner_earnings_inr_cr: float
+    inversion_checks: List[InversionCheckItem]
+
+class PillarGrahamValue(BaseModel):
+    graham_number: float
+    graham_discount_pct: float
+    piotroski_f_score: int # 0 - 9
+    altman_z_score: float
+    solvency_status: str # "SAFE_ZONE", "GREY_ZONE", "DISTRESS_RISK"
+    current_ratio: float
+    ncav_per_share: float
+
+class PillarLynchGrowth(BaseModel):
+    peg_ratio: float
+    lynch_category: str # "FAST_GROWER", "STALWART", "CYCLICAL", "TURNAROUND", "SLOW_GROWER"
+    earnings_growth_3yr_pct: float
+    pe_ratio: float
+    multibagger_potential_score: float # 0 - 100
+    inventory_to_sales_health: str # "HEALTHY", "WARNING"
+
+class PillarSimonsMomentum(BaseModel):
+    trend_alignment: str # "STRONG_BULLISH", "MODERATE_BULLISH", "SIDEWAYS", "BEARISH"
+    above_200_sma: bool
+    volume_profile_poc: float
+    value_area_position: str # "ABOVE_VAH", "INSIDE_VALUE_AREA", "BELOW_VAL"
+    gex_regime: str # "LONG_GAMMA_STABLE", "SHORT_GAMMA_VOLATILE"
+    quant_score: float # 0 - 100
+
+class PillarDruckenmillerMacro(BaseModel):
+    fii_dii_bias: str # "ACCUMULATION", "DISTRIBUTION", "NEUTRAL"
+    smart_money_streak_days: int
+    sector_rrg_quadrant: str # "LEADING", "IMPROVING", "WEAKENING", "LAGGING"
+    macro_tailwind_score: float # 0 - 100
+    crude_fx_sensitivity: str # "BENEFICIARY", "NEUTRAL", "HEADWIND"
+
+class OracleValuationResponse(BaseModel):
+    symbol: str
+    name: str
+    sector: str
+    ltp: float
+    master_verdict: str # "BUFFETT_FAT_PITCH", "ACCUMULATE_FAIR_PRICE", "WATCHLIST_FULLY_VALUED", "OVERVALUED_CHOPPY", "VALUE_TRAP_AVOID"
+    master_verdict_label: str
+    master_verdict_badge: str
+    master_verdict_color: str
+    composite_score: float # 0 - 100
+    fair_value: float
+    bargain_buy_price: float
+    margin_of_safety_pct: float
+    growth_rate_used_pct: float
+    discount_rate_used_pct: float
+    pillar_buffett: PillarBuffettMoat
+    pillar_graham: PillarGrahamValue
+    pillar_lynch: PillarLynchGrowth
+    pillar_simons: PillarSimonsMomentum
+    pillar_druckenmiller: PillarDruckenmillerMacro
+    master_summary: str
+    timestamp: str
+
+
 
 
 

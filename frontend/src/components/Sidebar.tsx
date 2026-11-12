@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Sparkles,
   Zap,
+  Brain,
   Filter,
   TrendingUp,
   Cpu,
@@ -19,6 +20,7 @@ import {
 
 export type TabType =
   | 'overview'
+  | 'oracle'
   | 'radar'
   | 'recommendations'
   | 'screener'
@@ -45,6 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const menuItems = [
     { id: 'overview', label: 'Market Overview', icon: LayoutDashboard },
+    { id: 'oracle', label: '🧠 Oracle AI Lab', icon: Brain },
     { id: 'radar', label: '⚡ Fast Alpha Radar', icon: Zap },
     { id: 'recommendations', label: 'AI Daily Recommendations', icon: Sparkles },
     { id: 'screener', label: 'Stock Screener', icon: Filter },

@@ -385,4 +385,85 @@ export interface GlobalIndicesData {
   };
 }
 
+export interface InversionCheckItem {
+  check_name: string;
+  passed: boolean;
+  description: string;
+}
+
+export interface PillarBuffettMoat {
+  fair_value_dcf: number;
+  margin_of_safety_pct: number;
+  bargain_buy_price: number;
+  moat_score: number;
+  moat_rating: 'WIDE_MOAT' | 'NARROW_MOAT' | 'NO_MOAT';
+  roic_pct: number;
+  roe_pct: number;
+  fcf_conversion_pct: number;
+  debt_to_equity: number;
+  owner_earnings_inr_cr: number;
+  inversion_checks: InversionCheckItem[];
+}
+
+export interface PillarGrahamValue {
+  graham_number: number;
+  graham_discount_pct: number;
+  piotroski_f_score: number;
+  altman_z_score: number;
+  solvency_status: 'SAFE_ZONE' | 'GREY_ZONE' | 'DISTRESS_RISK';
+  current_ratio: number;
+  ncav_per_share: number;
+}
+
+export interface PillarLynchGrowth {
+  peg_ratio: number;
+  lynch_category: 'FAST_GROWER' | 'STALWART' | 'CYCLICAL' | 'TURNAROUND' | 'SLOW_GROWER';
+  earnings_growth_3yr_pct: number;
+  pe_ratio: number;
+  multibagger_potential_score: number;
+  inventory_to_sales_health: 'HEALTHY' | 'WARNING';
+}
+
+export interface PillarSimonsMomentum {
+  trend_alignment: 'STRONG_BULLISH' | 'MODERATE_BULLISH' | 'SIDEWAYS' | 'BEARISH';
+  above_200_sma: boolean;
+  volume_profile_poc: number;
+  value_area_position: 'ABOVE_VAH' | 'INSIDE_VALUE_AREA' | 'BELOW_VAL';
+  gex_regime: 'LONG_GAMMA_STABLE' | 'SHORT_GAMMA_VOLATILE';
+  quant_score: number;
+}
+
+export interface PillarDruckenmillerMacro {
+  fii_dii_bias: 'ACCUMULATION' | 'DISTRIBUTION' | 'NEUTRAL';
+  smart_money_streak_days: number;
+  sector_rrg_quadrant: 'LEADING' | 'IMPROVING' | 'WEAKENING' | 'LAGGING';
+  macro_tailwind_score: number;
+  crude_fx_sensitivity: 'BENEFICIARY' | 'NEUTRAL' | 'HEADWIND';
+}
+
+export interface OracleValuationData {
+  symbol: string;
+  name: string;
+  sector: string;
+  ltp: number;
+  master_verdict: string;
+  master_verdict_label: string;
+  master_verdict_badge: string;
+  master_verdict_color: string;
+  composite_score: number;
+  fair_value: number;
+  bargain_buy_price: number;
+  margin_of_safety_pct: number;
+  growth_rate_used_pct: number;
+  discount_rate_used_pct: number;
+  pillar_buffett: PillarBuffettMoat;
+  pillar_graham: PillarGrahamValue;
+  pillar_lynch: PillarLynchGrowth;
+  pillar_simons: PillarSimonsMomentum;
+  pillar_druckenmiller: PillarDruckenmillerMacro;
+  master_summary: string;
+  timestamp: string;
+}
+
+
 

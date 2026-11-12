@@ -206,6 +206,23 @@ export async function fetchGlobalIndices(): Promise<any> {
   return res.json();
 }
 
+export async function fetchOracleAnalysis(
+  symbol: string,
+  growthRate?: number,
+  discountRate?: number
+): Promise<any> {
+  let url = `${API_BASE}/oracle/analyze/${symbol}`;
+  const params: string[] = [];
+  if (growthRate !== undefined) params.push(`growth_rate_pct=${growthRate}`);
+  if (discountRate !== undefined) params.push(`discount_rate_pct=${discountRate}`);
+  if (params.length > 0) url += `?${params.join('&')}`;
+
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch Oracle AI valuation for ${symbol}`);
+  return res.json();
+}
+
+
 
 
 

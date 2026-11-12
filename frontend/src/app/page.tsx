@@ -5,6 +5,7 @@ import { Header } from '../components/Header';
 import { GlobalTickerBar } from '../components/common/GlobalTickerBar';
 import { Sidebar, TabType } from '../components/Sidebar';
 import { MarketOverviewView } from '../components/MarketOverviewView';
+import { OracleAILabView } from '../components/OracleAILabView';
 import { FastAlphaRadarView } from '../components/FastAlphaRadarView';
 import { DailyRecommendationsView } from '../components/DailyRecommendationsView';
 import { ScreenerView } from '../components/ScreenerView';
@@ -86,6 +87,12 @@ export default function TerminalHome() {
             {activeTab === 'overview' && (
               <MarketOverviewView
                 data={overviewData}
+                onSelectSymbol={handleSelectSymbol}
+              />
+            )}
+
+            {activeTab === 'oracle' && (
+              <OracleAILabView
                 onSelectSymbol={handleSelectSymbol}
               />
             )}
