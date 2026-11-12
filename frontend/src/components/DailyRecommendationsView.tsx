@@ -724,12 +724,12 @@ export const DailyRecommendationsView: React.FC<Props> = ({ onSelectSymbol, onNa
 
             {/* Quantity / Lots Selector */}
             <div className="space-y-1.5 text-xs">
-              <label className="text-[11px] text-gray-300 flex justify-between">
+              <div className="flex justify-between items-center text-[11px] text-gray-300">
                 <span>Lots / Contract Multiplier:</span>
                 <span className="text-blue-400 font-semibold">
                   {orderLots} Lot ({orderLots * (orderModalRec.lot_size || 50)} units)
                 </span>
-              </label>
+              </div>
               <div className="flex items-center space-x-2">
                 {[1, 2, 5, 10].map(cnt => (
                   <button
@@ -745,6 +745,41 @@ export const DailyRecommendationsView: React.FC<Props> = ({ onSelectSymbol, onNa
                   </button>
                 ))}
               </div>
+
+              {/* Fractional Kelly Institutional Sizing Recommender */}
+              {(() => {
+                const p = (orderModalRec.conviction_score || 65) / 100.0;
+                const b = orderModalRec.risk_reward_ratio || 1.8;
+                const rawKelly = Math.max(0, (p * (b + 1) - 1) / b);
+                const halfKelly = rawKelly * 0.5;
+                const riskPerUnit = Math.max(1, Math.abs(orderModalRec.entry_price - orderModalRec.stop_loss));
+                const maxRiskBudget = 1000000.0 * 0.015; // 1.5% max risk cap
+                const maxUnits = Math.max(1, Math.floor(maxRiskBudget / riskPerUnit));
+                const lotSz = orderModalRec.lot_size || 50;
+                const kellyUnits = Math.min(maxUnits, Math.max(lotSz, Math.floor((1000000.0 * halfKelly) / Math.max(1, orderModalRec.entry_price))));
+                const recommendedLots = Math.max(1, Math.round(kellyUnits / lotSz));
+
+                return (
+                  <div className="p-2.5 rounded-xl bg-purple-950/30 border border-purple-500/30 text-[10px] space-y-1 mt-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-purple-300 font-bold flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-purple-400" />
+                        Fractional Kelly Suggestion (Half-Kelly):
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setOrderLots(recommendedLots)}
+                        className="px-2 py-0.5 rounded bg-purple-600 hover:bg-purple-500 text-white font-bold transition-colors shadow-sm"
+                      >
+                        Apply {recommendedLots}x Lot{recommendedLots > 1 ? 's' : ''}
+                      </button>
+                    </div>
+                    <div className="text-gray-400">
+                      Win Prob: {(p * 100).toFixed(0)}% | R:R: 1:{b} | Kelly Capital: {(halfKelly * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Estimated Capital Risk Display */}

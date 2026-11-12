@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { fetchQuote, fetchCandles, fetchIndicators } from '../lib/api';
+import { fetchQuote, fetchCandles, fetchIndicators, fetchVolumeProfile, fetchAnchoredVWAP } from '../lib/api';
 import { Quote, Candle, TechnicalIndicatorsData } from '../types/market';
 import { PriceFlash } from './common/PriceFlash';
-import { TrendingUp, BarChart2, ShieldCheck, Activity, Compass, Layers, Zap } from 'lucide-react';
+import { TrendingUp, BarChart2, ShieldCheck, Activity, Compass, Layers, Zap, Target, Sparkles, SlidersHorizontal } from 'lucide-react';
 
 interface Props {
   symbol: string;
@@ -15,21 +15,27 @@ export const InstrumentDeepDiveView: React.FC<Props> = ({ symbol }) => {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [candles, setCandles] = useState<Candle[]>([]);
   const [indicators, setIndicators] = useState<TechnicalIndicatorsData | null>(null);
+  const [volumeProfile, setVolumeProfile] = useState<any | null>(null);
+  const [anchoredVwap, setAnchoredVwap] = useState<any | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     let isMounted = true;
     async function loadData() {
       try {
-        const [q, c, ind] = await Promise.all([
+        const [q, c, ind, vp, av] = await Promise.all([
           fetchQuote(symbol),
           fetchCandles(symbol, timeframe, 60),
-          fetchIndicators(symbol, timeframe)
+          fetchIndicators(symbol, timeframe),
+          fetchVolumeProfile(symbol, timeframe).catch(() => null),
+          fetchAnchoredVWAP(symbol, timeframe).catch(() => null)
         ]);
         if (isMounted) {
           setQuote(q);
           setCandles(c);
           setIndicators(ind);
+          if (vp) setVolumeProfile(vp);
+          if (av) setAnchoredVwap(av);
         }
       } catch (e) {
         console.error(e);
@@ -264,6 +270,131 @@ export const InstrumentDeepDiveView: React.FC<Props> = ({ symbol }) => {
 
         {renderCandlestickChart()}
       </div>
+
+      {/* 2B. Institutional Order Flow Volume Profile & Anchored VWAP (AVWAP) Layer */}
+      {(volumeProfile || anchoredVwap) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Volume Profile (POC / VAH / VAL) */}
+          {volumeProfile && (
+            <div className="p-5 rounded-2xl bg-terminal-surface border border-terminal-border space-y-4 font-mono text-xs">
+              <div className="flex items-center justify-between border-b border-terminal-border/80 pb-3">
+                <div className="flex items-center space-x-2">
+                  <Target className="w-4 h-4 text-amber-400" />
+                  <h3 className="uppercase font-semibold tracking-wider text-gray-200">
+                    Order Flow Volume Profile (POC &amp; 70% Value Area)
+                  </h3>
+                </div>
+                <span className={`text-[10px] px-2 py-0.5 rounded font-bold border ${
+                  volumeProfile.va_status === 'INSIDE_VALUE_AREA'
+                    ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                    : volumeProfile.va_status === 'ABOVE_VALUE_AREA'
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                }`}>
+                  {volumeProfile.va_status.replace(/_/g, ' ')}
+                </span>
+              </div>
+
+              {/* Top Metrics Row */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-terminal-dark/90 p-2.5 rounded-xl border border-terminal-border/80">
+                  <span className="text-[10px] text-gray-500 block uppercase">VA HIGH (VAH)</span>
+                  <span className="text-sm font-bold text-rose-400">₹{volumeProfile.vah.toFixed(1)}</span>
+                  <span className="text-[9px] text-gray-500 block">70% Value Upper Bound</span>
+                </div>
+                <div className="bg-terminal-dark/90 p-2.5 rounded-xl border border-amber-500/40">
+                  <span className="text-[10px] text-amber-400 font-bold block uppercase">POC (MAGNET)</span>
+                  <span className="text-sm font-bold text-white">₹{volumeProfile.poc.toFixed(1)}</span>
+                  <span className="text-[9px] text-gray-400 block">Peak Traded Volume</span>
+                </div>
+                <div className="bg-terminal-dark/90 p-2.5 rounded-xl border border-terminal-border/80">
+                  <span className="text-[10px] text-gray-500 block uppercase">VA LOW (VAL)</span>
+                  <span className="text-sm font-bold text-emerald-400">₹{volumeProfile.val.toFixed(1)}</span>
+                  <span className="text-[9px] text-gray-500 block">70% Value Lower Floor</span>
+                </div>
+              </div>
+
+              {/* Volume Distribution Mini-Histogram */}
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Price Volume Nodes:</span>
+                <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                  {volumeProfile.profile_bins.slice(0, 8).map((b: any, idx: number) => {
+                    const isPoc = b.price === volumeProfile.poc;
+                    return (
+                      <div key={idx} className="flex items-center text-[10px] gap-2">
+                        <span className={`w-14 text-right shrink-0 ${isPoc ? 'text-amber-400 font-bold' : 'text-gray-400'}`}>
+                          ₹{b.price.toFixed(0)}
+                        </span>
+                        <div className="flex-1 h-3 bg-terminal-dark rounded overflow-hidden">
+                          <div
+                            style={{ width: `${Math.min(100, b.volume_pct * 5)}%` }}
+                            className={`h-full ${isPoc ? 'bg-amber-400' : 'bg-blue-600/70'}`}
+                          />
+                        </div>
+                        <span className="w-10 text-gray-500 text-right shrink-0">{b.volume_pct}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <p className="text-[11px] text-gray-400 font-sans italic border-t border-terminal-border/60 pt-2">
+                Order Flow Thesis: {volumeProfile.va_thesis}
+              </p>
+            </div>
+          )}
+
+          {/* Multi-Anchored VWAP (AVWAP) Table */}
+          {anchoredVwap && (
+            <div className="p-5 rounded-2xl bg-terminal-surface border border-terminal-border space-y-4 font-mono text-xs">
+              <div className="flex items-center justify-between border-b border-terminal-border/80 pb-3">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4 text-blue-400" />
+                  <h3 className="uppercase font-semibold tracking-wider text-gray-200">
+                    Multi-Anchored VWAP (AVWAP) &amp; Dispersion Bands
+                  </h3>
+                </div>
+                <span className="text-[10px] text-gray-400 uppercase font-mono">
+                  Structural Anchors
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {Object.entries(anchoredVwap).map(([key, val]: [string, any]) => (
+                  <div key={key} className="bg-terminal-dark/80 p-3 rounded-xl border border-terminal-border/80 space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-white text-xs uppercase flex items-center gap-1.5">
+                        <span className={`w-2 h-2 rounded-full ${val.is_above_avwap ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                        {key.replace(/_/g, ' ')}
+                      </span>
+                      <span className={`text-[11px] font-bold ${val.is_above_avwap ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                        {val.is_above_avwap ? '▲ Bullish Above' : '▼ Bearish Below'} ({val.deviation_pct >= 0 ? '+' : ''}{val.deviation_pct}%)
+                      </span>
+                    </div>
+
+                    <div className="text-[10px] text-gray-400">{val.anchor_description}</div>
+
+                    <div className="grid grid-cols-3 gap-2 pt-1 border-t border-terminal-border/40 text-[10px]">
+                      <div>
+                        <span className="text-gray-500 block">AVWAP PIVOT</span>
+                        <span className="font-bold text-amber-400 text-xs">₹{val.current_avwap.toFixed(1)}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 block">+1σ BAND</span>
+                        <span className="font-bold text-gray-300">₹{val.upper_1sd.toFixed(1)}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 block">-1σ BAND</span>
+                        <span className="font-bold text-gray-300">₹{val.lower_1sd.toFixed(1)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 3. Comprehensive Technical Indicators Grid */}
       {indicators && (

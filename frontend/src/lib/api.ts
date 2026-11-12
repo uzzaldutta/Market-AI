@@ -141,3 +141,46 @@ export async function toggleFavourite(symbol: string): Promise<{ symbol: string;
   if (!res.ok) throw new Error(`Failed to toggle favourite for ${symbol}`);
   return res.json();
 }
+
+// --- INSTITUTIONAL QUANT ALPHA API CALLS ---
+export async function fetchGEXProfile(symbol: string, expiry?: string): Promise<any> {
+  const url = expiry ? `${API_BASE}/options/${symbol}/gex?expiry=${expiry}` : `${API_BASE}/options/${symbol}/gex`;
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch GEX profile for ${symbol}`);
+  return res.json();
+}
+
+export async function fetchVolumeProfile(symbol: string, timeframe = '1D', bins = 30): Promise<any> {
+  const res = await fetch(`${API_BASE}/instruments/${symbol}/volume-profile?timeframe=${timeframe}&bins=${bins}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch volume profile for ${symbol}`);
+  return res.json();
+}
+
+export async function fetchAnchoredVWAP(symbol: string, timeframe = '1D'): Promise<any> {
+  const res = await fetch(`${API_BASE}/instruments/${symbol}/anchored-vwap?timeframe=${timeframe}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch anchored VWAP for ${symbol}`);
+  return res.json();
+}
+
+export async function fetchParticipantFlows(): Promise<any> {
+  const res = await fetch(`${API_BASE}/derivatives/participant-flows`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch participant flows');
+  return res.json();
+}
+
+export async function fetchSectorRotationMatrix(): Promise<any> {
+  const res = await fetch(`${API_BASE}/sectors/rotation-matrix`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch sector rotation matrix');
+  return res.json();
+}
+
+export async function calculateKellySizing(payload: any): Promise<any> {
+  const res = await fetch(`${API_BASE}/risk/kelly-sizing`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('Failed to calculate Kelly sizing');
+  return res.json();
+}
+

@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { fetchOptionChain, fetchStrategyPayoff } from '../lib/api';
+import { fetchOptionChain, fetchStrategyPayoff, fetchGEXProfile } from '../lib/api';
 import { OptionChainData, StrategyPayoffData } from '../types/market';
 import { PriceFlash } from './common/PriceFlash';
-import { Layers, Zap, Calculator, AlertTriangle, ArrowRight, Activity } from 'lucide-react';
+import { Layers, Zap, Calculator, AlertTriangle, ArrowRight, Activity, ShieldAlert, Sparkles, TrendingUp, Sliders } from 'lucide-react';
 
 interface Props {
   symbol: string;
@@ -12,6 +12,7 @@ interface Props {
 
 export const OptionsAnalyticsView: React.FC<Props> = ({ symbol }) => {
   const [chain, setChain] = useState<OptionChainData | null>(null);
+  const [gex, setGex] = useState<any | null>(null);
   const [selectedExpiry, setSelectedExpiry] = useState<string>('');
   const [strategy, setStrategy] = useState<string>('BULL_CALL_SPREAD');
   const [payoff, setPayoff] = useState<StrategyPayoffData | null>(null);
@@ -19,13 +20,17 @@ export const OptionsAnalyticsView: React.FC<Props> = ({ symbol }) => {
 
   useEffect(() => {
     let isMounted = true;
-    async function loadChain() {
+    async function loadChainAndGex() {
       try {
-        const res = await fetchOptionChain(symbol, selectedExpiry || undefined);
+        const [chainRes, gexRes] = await Promise.all([
+          fetchOptionChain(symbol, selectedExpiry || undefined),
+          fetchGEXProfile(symbol, selectedExpiry || undefined).catch(() => null)
+        ]);
         if (isMounted) {
-          setChain(res);
-          if (!selectedExpiry && res.expiry_dates?.length) {
-            setSelectedExpiry(res.selected_expiry);
+          setChain(chainRes);
+          if (gexRes) setGex(gexRes);
+          if (!selectedExpiry && chainRes.expiry_dates?.length) {
+            setSelectedExpiry(chainRes.selected_expiry);
           }
         }
       } catch (e) {
@@ -34,9 +39,9 @@ export const OptionsAnalyticsView: React.FC<Props> = ({ symbol }) => {
         if (isMounted) setLoading(false);
       }
     }
-    loadChain();
+    loadChainAndGex();
     // 8-second polling for live option ticks
-    const timer = setInterval(loadChain, 8000);
+    const timer = setInterval(loadChainAndGex, 8000);
     return () => {
       isMounted = false;
       clearInterval(timer);
@@ -133,7 +138,81 @@ export const OptionsAnalyticsView: React.FC<Props> = ({ symbol }) => {
         </div>
       </div>
 
-      {/* 2. Strategy Payoff Simulator */}
+      {/* 2. Institutional Dealer Gamma Exposure (GEX) & Volatility Inversion Monitor */}
+      {gex && (
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-purple-950/30 via-terminal-surface to-blue-950/30 border border-purple-500/30 shadow-lg">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-terminal-border/60">
+            <div>
+              <div className="flex items-center space-x-2 text-xs font-mono text-purple-400 font-bold mb-1">
+                <Sparkles className="w-4 h-4 text-purple-400" />
+                <span className="uppercase tracking-wider">OPTION DEALER GAMMA EXPOSURE (GEX) &amp; VOLATILITY INVERSION</span>
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-white font-mono flex items-center gap-2">
+                Market Maker Net Gamma:
+                <span className={`font-mono ${gex.total_net_gex_cr >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                  {gex.total_net_gex_cr >= 0 ? '+' : ''}{gex.total_net_gex_cr.toFixed(1)} Cr ₹
+                </span>
+                <span className={`text-[10px] uppercase px-2 py-0.5 rounded font-bold border ${
+                  gex.regime === 'LONG_GAMMA'
+                    ? 'bg-emerald-500/10 text-terminal-green border-emerald-500/30'
+                    : gex.regime === 'SHORT_GAMMA'
+                    ? 'bg-rose-500/10 text-terminal-red border-rose-500/30'
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                }`}>
+                  {gex.regime.replace(/_/g, ' ')}
+                </span>
+              </h3>
+              <p className="text-xs text-gray-400 mt-1 max-w-2xl font-sans">
+                {gex.regime_description}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono">
+              <div className="bg-terminal-dark/90 p-2.5 rounded-xl border border-terminal-border/80">
+                <span className="text-[10px] text-gray-500 block uppercase">ZERO GAMMA FLIP</span>
+                <span className="font-bold text-amber-400 text-sm">₹{gex.gamma_flip_level.toFixed(0)}</span>
+                <span className="text-[10px] text-gray-400 block mt-0.5">
+                  ({gex.distance_to_flip_pct >= 0 ? '+' : ''}{gex.distance_to_flip_pct}% away)
+                </span>
+              </div>
+
+              <div className="bg-terminal-dark/90 p-2.5 rounded-xl border border-terminal-border/80">
+                <span className="text-[10px] text-gray-500 block uppercase">MAJOR CALL WALL</span>
+                <span className="font-bold text-rose-400 text-sm">₹{gex.major_call_wall.toFixed(0)}</span>
+                <span className="text-[10px] text-gray-500 block mt-0.5">Top Resistance</span>
+              </div>
+
+              <div className="bg-terminal-dark/90 p-2.5 rounded-xl border border-terminal-border/80 col-span-2 sm:col-span-1">
+                <span className="text-[10px] text-gray-500 block uppercase">MAJOR PUT WALL</span>
+                <span className="font-bold text-emerald-400 text-sm">₹{gex.major_put_wall.toFixed(0)}</span>
+                <span className="text-[10px] text-gray-500 block mt-0.5">Top Support Floor</span>
+              </div>
+            </div>
+          </div>
+
+          {/* GEX Strike Spectrum Bar */}
+          <div className="pt-3">
+            <div className="flex justify-between items-center text-[10px] font-mono text-gray-400 mb-1.5">
+              <span>DEALER SHORT GAMMA ZONE (High Volatility)</span>
+              <span className="text-amber-400 font-bold">FLIP LEVEL: ₹{gex.gamma_flip_level.toFixed(0)}</span>
+              <span>DEALER LONG GAMMA ZONE (Damped Volatility)</span>
+            </div>
+            <div className="w-full h-3 bg-terminal-dark rounded-full overflow-hidden flex border border-terminal-border/80 relative">
+              <div
+                style={{ width: `${Math.max(15, Math.min(85, 50 - (gex.distance_to_flip_pct * 10)))}%` }}
+                className="h-full bg-gradient-to-r from-rose-600 to-rose-400 transition-all duration-500"
+              />
+              <div className="w-1 h-full bg-white z-10 animate-pulse shadow-sm" />
+              <div
+                style={{ width: `${Math.max(15, Math.min(85, 50 + (gex.distance_to_flip_pct * 10)))}%` }}
+                className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-500"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Strategy Payoff Simulator */}
       <div className="p-5 rounded-xl bg-terminal-surface border border-terminal-border">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-2">

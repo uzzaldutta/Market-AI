@@ -364,3 +364,77 @@ class FavouriteItemResponse(BaseModel):
     volume: int
     is_favourite: bool = True
 
+# --- INSTITUTIONAL QUANT ENGINES SCHEMAS ---
+class GEXStrikeItem(BaseModel):
+    strike: float
+    call_oi: int
+    put_oi: int
+    call_gex_cr: float
+    put_gex_cr: float
+    net_gex_cr: float
+    gamma: float
+
+class GEXProfileResponse(BaseModel):
+    symbol: str
+    spot_price: float
+    lot_size: int
+    expiry: str
+    total_net_gex_cr: float
+    total_call_gex_cr: float
+    total_put_gex_cr: float
+    gamma_flip_level: float
+    distance_to_flip_pct: float
+    regime: str
+    regime_description: str
+    market_action: str
+    expected_volatility: str
+    major_call_wall: float
+    major_put_wall: float
+    strikes: List[GEXStrikeItem]
+
+class VolumeProfileBin(BaseModel):
+    price: float
+    price_low: float
+    price_high: float
+    volume: int
+    volume_pct: float
+
+class VolumeProfileResponse(BaseModel):
+    poc: float
+    vah: float
+    val: float
+    last_close: float
+    va_status: str
+    va_thesis: str
+    total_volume: int
+    profile_bins: List[VolumeProfileBin]
+    high_volume_nodes: List[float]
+    low_volume_nodes: List[float]
+
+class KellySizingRequest(BaseModel):
+    account_equity: float = 1000000.0
+    entry_price: float
+    stop_loss: float
+    target_price: float
+    win_probability: float = 0.65
+    lot_size: int = 1
+    max_capital_risk_pct: float = 1.5
+
+class KellySizingResponse(BaseModel):
+    has_edge: bool
+    win_probability_pct: Optional[float] = None
+    risk_reward_ratio: Optional[float] = None
+    full_kelly_pct: Optional[float] = None
+    half_kelly_pct: Optional[float] = None
+    quarter_kelly_pct: Optional[float] = None
+    recommended_lots: int = 0
+    recommended_quantity: int = 0
+    lot_size: int = 1
+    position_value_inr: float = 0.0
+    capital_at_risk_inr: float = 0.0
+    risk_pct_of_account: float = 0.0
+    expected_value_inr: float = 0.0
+    max_loss_budget_inr: float = 0.0
+    message: Optional[str] = None
+
+

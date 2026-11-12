@@ -12,7 +12,9 @@ from ..schemas.market import (
     PredictionResponse, SignalResponse, BacktestRequest, BacktestResponse,
     PaperOrderRequest, PaperOrderResponse, PaperAccountResponse,
     ScreenerFilterRequest, ScreenerResponse, NewsItemResponse,
-    FavouriteToggleRequest, FavouriteItemResponse
+    FavouriteToggleRequest, FavouriteItemResponse,
+    GEXProfileResponse, VolumeProfileResponse,
+    KellySizingRequest, KellySizingResponse
 )
 from ..providers.manager import get_market_data_provider
 from ..core.nse_instruments import NSE_SYMBOL_INDEX, search_nse_instruments
@@ -25,6 +27,11 @@ from ..engine.paper_engine import paper_engine
 from ..engine.screener import ScreenerEngine
 from ..engine.news import NewsIntelligenceEngine
 from ..engine.daily_recommendations import DailyRecommendationsEngine
+from ..engine.gamma_exposure import gamma_engine
+from ..engine.volume_profile import volume_engine
+from ..engine.participant_oi import participant_oi_engine
+from ..engine.sector_rotation import sector_rotation_engine
+from ..engine.risk_allocator import risk_allocator
 
 router = APIRouter()
 
@@ -222,6 +229,78 @@ def toggle_user_favourite(req: FavouriteToggleRequest):
 def get_news(symbol: Optional[str] = None):
     """Returns categorized financial news and event impact intelligence."""
     return news_engine.get_market_news(symbol)
+
+# --- INSTITUTIONAL QUANT ENGINES ENDPOINTS ---
+@router.get("/options/{symbol}/gex", response_model=GEXProfileResponse)
+def get_options_gex(symbol: str, expiry: Optional[str] = None):
+    """
+    Computes Option Dealer Gamma Exposure (GEX), Spot Gamma in INR Crores,
+    Regime (Long/Short Gamma), and Zero-Gamma Volatility Inversion Flip Level.
+    """
+    return gamma_engine.calculate_gex_profile(symbol, expiry)
+
+@router.get("/instruments/{symbol}/volume-profile", response_model=VolumeProfileResponse)
+def get_instrument_volume_profile(
+    symbol: str,
+    timeframe: str = Query("1D", pattern="^(1m|5m|15m|1h|1D)$"),
+    bins: int = Query(30, ge=10, le=60)
+):
+    """
+    Computes Order Flow Volume Profile: Point of Control (POC), Value Area (VAH/VAL at 70%),
+    and Low/High Volume Nodes.
+    """
+    candles = provider.get_candles(symbol, timeframe=timeframe, count=100)
+    df = pd.DataFrame(candles)
+    if df.empty or len(df) < 5:
+        raise HTTPException(status_code=404, detail="Insufficient price history for volume profile")
+    return volume_engine.compute_volume_profile(df, bins=bins)
+
+@router.get("/instruments/{symbol}/anchored-vwap")
+def get_instrument_anchored_vwap(
+    symbol: str,
+    timeframe: str = Query("1D", pattern="^(1m|5m|15m|1h|1D)$")
+):
+    """
+    Calculates Multi-Anchored VWAP (AVWAP) and Standard Deviation Dispersion Bands
+    from session open, swing highs, and swing lows.
+    """
+    candles = provider.get_candles(symbol, timeframe=timeframe, count=100)
+    df = pd.DataFrame(candles)
+    if df.empty or len(df) < 5:
+        raise HTTPException(status_code=404, detail="Insufficient price history for Anchored VWAP")
+    return volume_engine.compute_anchored_vwap(df)
+
+@router.get("/derivatives/participant-flows")
+def get_participant_flows():
+    """
+    Computes FII, DII, Proprietary, and Retail Client positioning across
+    Index Futures and Options, FII Long/Short ratio, and Smart Money Divergence Index.
+    """
+    return participant_oi_engine.get_participant_oi_analytics()
+
+@router.get("/sectors/rotation-matrix")
+def get_sector_rotation_matrix():
+    """
+    Calculates Relative Rotation Graph (RRG) metrics across 14 NSE Sector Indices
+    against NIFTY 50 benchmark (Leading, Weakening, Lagging, Improving quadrants).
+    """
+    return sector_rotation_engine.compute_rotation_matrix()
+
+@router.post("/risk/kelly-sizing", response_model=KellySizingResponse)
+def calculate_risk_kelly_sizing(req: KellySizingRequest):
+    """
+    Calculates mathematical position sizing using the Fractional Kelly Criterion,
+    risk/reward ratio, and Value-at-Risk account caps.
+    """
+    return risk_allocator.calculate_kelly_sizing(
+        account_equity=req.account_equity,
+        entry_price=req.entry_price,
+        stop_loss=req.stop_loss,
+        target_price=req.target_price,
+        win_probability=req.win_probability,
+        lot_size=req.lot_size,
+        max_capital_risk_pct=req.max_capital_risk_pct
+    )
 
 @router.get("/health")
 def get_health_status():

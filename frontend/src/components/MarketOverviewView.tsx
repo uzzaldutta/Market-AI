@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { MarketOverviewData, Quote } from '../types/market';
 import { useFavourites } from '../context/FavouritesContext';
 import { PriceFlash } from './common/PriceFlash';
-import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Activity, BarChart2, Star } from 'lucide-react';
+import { fetchParticipantFlows, fetchSectorRotationMatrix } from '../lib/api';
+import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Activity, BarChart2, Star, Sparkles, ShieldAlert, Layers, Compass } from 'lucide-react';
 
 interface Props {
   data: MarketOverviewData | null;
@@ -13,6 +14,30 @@ interface Props {
 
 export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) => {
   const { isFavourite, toggle } = useFavourites();
+  const [participantFlows, setParticipantFlows] = useState<any | null>(null);
+  const [sectorRotation, setSectorRotation] = useState<any | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadQuantTelemetry() {
+      try {
+        const [flows, rrg] = await Promise.all([
+          fetchParticipantFlows().catch(() => null),
+          fetchSectorRotationMatrix().catch(() => null)
+        ]);
+        if (isMounted) {
+          if (flows) setParticipantFlows(flows);
+          if (rrg) setSectorRotation(rrg);
+        }
+      } catch (e) {}
+    }
+    loadQuantTelemetry();
+    const timer = setInterval(loadQuantTelemetry, 15000);
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
+  }, []);
 
   if (!data) {
     return (
@@ -119,6 +144,164 @@ export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) =>
           </div>
         </div>
       </div>
+
+      {/* 1B. Institutional Smart Money (FII / DII) & Cycle Sentiment Telemetry */}
+      {participantFlows && (
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-950/30 via-terminal-surface to-indigo-950/30 border border-blue-500/30 shadow-md">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-terminal-border/60">
+            <div>
+              <div className="flex items-center space-x-2 text-xs font-mono text-blue-400 font-bold mb-1">
+                <Sparkles className="w-4 h-4 text-blue-400" />
+                <span className="uppercase tracking-wider">INSTITUTIONAL PARTICIPANT POSITIONING &amp; FII LONG/SHORT RATIO</span>
+              </div>
+              <h3 className="text-base sm:text-lg font-bold text-white font-mono flex items-center gap-2">
+                Smart Money Divergence:
+                <span className={`font-mono ${participantFlows.smart_money_divergence >= 0 ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                  {participantFlows.smart_money_divergence >= 0 ? '+' : ''}{participantFlows.smart_money_divergence}%
+                </span>
+                <span className="text-[10px] uppercase px-2 py-0.5 rounded font-bold bg-blue-500/10 text-blue-400 border border-blue-500/30">
+                  {participantFlows.cycle_phase.replace(/_/g, ' ')}
+                </span>
+              </h3>
+              <p className="text-xs text-gray-400 mt-1 max-w-2xl font-sans">
+                {participantFlows.cycle_thesis}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
+              <div className="bg-terminal-dark/90 p-2.5 rounded-xl border border-terminal-border/80">
+                <span className="text-[10px] text-gray-500 block">FII FUTURES LONG</span>
+                <span className="font-bold text-emerald-400 text-sm">
+                  {participantFlows.participants.fii.long_ratio_pct}%
+                </span>
+                <span className="text-[9px] text-gray-500 block">
+                  {participantFlows.participants.fii.stance}
+                </span>
+              </div>
+
+              <div className="bg-terminal-dark/90 p-2.5 rounded-xl border border-terminal-border/80">
+                <span className="text-[10px] text-gray-500 block">RETAIL CLIENT LONG</span>
+                <span className="font-bold text-amber-400 text-sm">
+                  {participantFlows.participants.client.long_ratio_pct}%
+                </span>
+                <span className="text-[9px] text-gray-500 block">
+                  {participantFlows.participants.client.stance}
+                </span>
+              </div>
+
+              <div className="bg-terminal-dark/90 p-2.5 rounded-xl border border-terminal-border/80">
+                <span className="text-[10px] text-gray-500 block">DII NET FUTURES</span>
+                <span className="font-bold text-gray-300 text-sm">
+                  {(participantFlows.participants.dii.net_futures / 1000).toFixed(1)}k
+                </span>
+                <span className="text-[9px] text-gray-500 block">Contracts</span>
+              </div>
+
+              <div className="bg-terminal-dark/90 p-2.5 rounded-xl border border-terminal-border/80">
+                <span className="text-[10px] text-gray-500 block">PRO DESK NET</span>
+                <span className="font-bold text-cyan-400 text-sm">
+                  {(participantFlows.participants.pro.net_futures / 1000).toFixed(1)}k
+                </span>
+                <span className="text-[9px] text-gray-500 block">Market Makers</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Institutional vs Retail Sentiment Comparison Meter */}
+          <div className="pt-3">
+            <div className="flex justify-between text-[10px] font-mono text-gray-400 mb-1">
+              <span className="text-emerald-400 font-bold">FII (Smart Money): {participantFlows.participants.fii.long_ratio_pct}% Long</span>
+              <span className="text-gray-400">Institutional Long/Short Index</span>
+              <span className="text-amber-400 font-bold">Client (Retail): {participantFlows.participants.client.long_ratio_pct}% Long</span>
+            </div>
+            <div className="w-full h-2.5 bg-terminal-dark rounded-full overflow-hidden flex border border-terminal-border/80">
+              <div
+                style={{ width: `${participantFlows.participants.fii.long_ratio_pct}%` }}
+                className="bg-emerald-500 h-full"
+              />
+              <div
+                style={{ width: `${100 - participantFlows.participants.fii.long_ratio_pct}%` }}
+                className="bg-rose-500 h-full"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 1C. Sector Relative Strength & Momentum Rotation Matrix (RRG Quadrants) */}
+      {sectorRotation && (
+        <div className="p-5 rounded-2xl bg-terminal-surface border border-terminal-border space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-terminal-border/80 pb-3">
+            <div className="flex items-center space-x-2">
+              <Compass className="w-4 h-4 text-emerald-400" />
+              <h2 className="text-xs uppercase font-mono font-semibold tracking-wider text-gray-200">
+                Sector Relative Strength &amp; Momentum Rotation (RRG Model vs NIFTY 50)
+              </h2>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-mono">
+              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
+                {sectorRotation.leading_count} Leading
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-bold">
+                {sectorRotation.improving_count} Improving
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold">
+                {sectorRotation.weakening_count} Weakening
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/30 font-bold">
+                {sectorRotation.lagging_count} Lagging
+              </span>
+            </div>
+          </div>
+
+          {/* RRG Quadrant Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 font-mono text-xs">
+            {sectorRotation.sectors.slice(0, 8).map((sec: any) => {
+              const isLeading = sec.quadrant === 'LEADING';
+              const isImproving = sec.quadrant === 'IMPROVING';
+              const isWeakening = sec.quadrant === 'WEAKENING';
+              return (
+                <div
+                  key={sec.sector_name}
+                  className={`p-3 rounded-xl border transition-all ${
+                    isLeading
+                      ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300'
+                      : isImproving
+                      ? 'bg-cyan-950/20 border-cyan-500/30 text-cyan-300'
+                      : isWeakening
+                      ? 'bg-amber-950/20 border-amber-500/30 text-amber-300'
+                      : 'bg-rose-950/20 border-rose-500/30 text-rose-300'
+                  }`}
+                >
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-white text-xs">{sec.sector_name}</span>
+                    <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase ${
+                      isLeading ? 'bg-emerald-500/20 text-emerald-400' :
+                      isImproving ? 'bg-cyan-500/20 text-cyan-400' :
+                      isWeakening ? 'bg-amber-500/20 text-amber-400' :
+                      'bg-rose-500/20 text-rose-400'
+                    }`}>
+                      {sec.quadrant}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-gray-400 mb-2">{sec.category}</div>
+
+                  <div className="grid grid-cols-2 gap-1 text-[10px] pt-1 border-t border-terminal-border/40">
+                    <div>
+                      <span className="text-gray-500 block">RS-RATIO</span>
+                      <span className="font-bold text-white">{sec.rs_ratio}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block">RS-MOMENTUM</span>
+                      <span className="font-bold text-white">{sec.rs_momentum}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* 2. Sector Performance Heatmap */}
       <div className="p-5 rounded-xl bg-terminal-surface border border-terminal-border">
