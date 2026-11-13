@@ -440,7 +440,10 @@ class PaperTradingEngine:
                     current_market_price=round(pos["current_market_price"], 2),
                     unrealized_pnl=round(pos["unrealized_pnl"], 2),
                     realized_pnl=round(pos.get("realized_pnl", 0.0), 2),
-                    pnl_percentage=round(pnl_pct, 2)
+                    pnl_percentage=round(pnl_pct, 2),
+                    strike_price=pos.get("strike_price"),
+                    option_type=pos.get("option_type"),
+                    expiry_date=pos.get("expiry_date")
                 ))
 
         recent_orders_list = [PaperOrderResponse(**o) for o in list(self.orders.values())[-15:]]

@@ -240,12 +240,48 @@ export const PaperTradingView: React.FC = () => {
         quantity: unitsInLots,
         product_type: pos.product_type,
         instrument_type: pos.instrument_type || 'EQUITY',
+        strike_price: pos.strike_price,
+        option_type: pos.option_type,
+        expiry_date: pos.expiry_date,
         lot_size: pos.lot_size || 1,
         client_order_id: `SQ-OFF-${Date.now()}`
       });
       loadAccount();
     } catch (e) {
       console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSquareOffAll = async () => {
+    if (!account?.positions || account.positions.length === 0) return;
+    if (!window.confirm(`Are you sure you want to square off all ${account.positions.length} open position(s) at current market price?`)) return;
+
+    setLoading(true);
+    try {
+      for (const pos of account.positions) {
+        if (pos.net_quantity === 0) continue;
+        const exitSide = pos.net_quantity > 0 ? 'SELL' : 'BUY';
+        const absQty = Math.abs(pos.net_quantity);
+        const unitsInLots = (pos.lot_size && pos.lot_size > 1) ? Math.round(absQty / pos.lot_size) : absQty;
+        await placePaperOrder({
+          symbol: pos.symbol,
+          side: exitSide,
+          order_type: 'MARKET',
+          quantity: unitsInLots,
+          product_type: pos.product_type,
+          instrument_type: pos.instrument_type || 'EQUITY',
+          strike_price: pos.strike_price,
+          option_type: pos.option_type,
+          expiry_date: pos.expiry_date,
+          lot_size: pos.lot_size || 1,
+          client_order_id: `SQ-ALL-${pos.symbol}-${Date.now()}`
+        });
+      }
+      loadAccount();
+    } catch (err) {
+      console.error('Square off all error:', err);
     } finally {
       setLoading(false);
     }
@@ -750,12 +786,24 @@ export const PaperTradingView: React.FC = () => {
         <div className="lg:col-span-2 space-y-6">
           {/* Active Positions Table */}
           <div className="p-5 rounded-xl bg-terminal-surface border border-terminal-border shadow-sm">
-            <h2 className="text-xs uppercase font-mono font-semibold tracking-wider text-gray-300 mb-3 flex items-center justify-between">
-              <span className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <h2 className="text-xs uppercase font-mono font-semibold tracking-wider text-gray-300 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-blue-400" /> Active Open Positions ({account.positions.length})
-              </span>
-              <span className="text-[10px] text-gray-500 font-mono">Live Mark-to-Market Valuation</span>
-            </h2>
+              </h2>
+
+              <div className="flex items-center space-x-2">
+                <span className="text-[10px] text-gray-500 font-mono hidden sm:inline">Live Mark-to-Market Valuation</span>
+                {account.positions.length > 0 && (
+                  <button
+                    onClick={handleSquareOffAll}
+                    disabled={loading}
+                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-rose-500/15 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/30 transition-all shadow-sm flex items-center gap-1"
+                  >
+                    <span>⚠️ Square Off All ({account.positions.length})</span>
+                  </button>
+                )}
+              </div>
+            </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-mono">

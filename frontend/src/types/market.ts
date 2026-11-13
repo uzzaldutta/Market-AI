@@ -205,6 +205,9 @@ export interface PaperPosition {
   unrealized_pnl: number;
   realized_pnl: number;
   pnl_percentage: number;
+  strike_price?: number;
+  option_type?: 'CE' | 'PE';
+  expiry_date?: string;
 }
 
 export interface PaperOrder {

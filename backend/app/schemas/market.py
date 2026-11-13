@@ -291,6 +291,9 @@ class PaperPositionResponse(BaseModel):
     unrealized_pnl: float
     realized_pnl: float
     pnl_percentage: float
+    strike_price: Optional[float] = None
+    option_type: Optional[str] = None
+    expiry_date: Optional[str] = None
 
 class PaperAccountResponse(BaseModel):
     account_name: str
