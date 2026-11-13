@@ -1,0 +1,23 @@
+{
+  "user_id": "trader_b",
+  "display_name": "User Trader_b",
+  "email": "trader_b@bharatmarket.in",
+  "budget_tier": "UNDER_5K",
+  "risk_appetite": "BALANCED",
+  "max_capital_per_trade_inr": 5000.0,
+  "max_daily_loss_limit_inr": -1500.0,
+  "preferred_instruments": [
+    "INDEX_OPTION",
+    "CASH_EQUITY"
+  ],
+  "preferred_exchanges": [
+    "NSE",
+    "BSE"
+  ],
+  "sound_alerts_enabled": true,
+  "auto_execute_paper_trades": false,
+  "theme": "dark",
+  "scrips": [],
+  "custom_rules": [],
+  "updated_at": "2026-11-13T21:07:50.072556"
+}

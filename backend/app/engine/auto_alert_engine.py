@@ -303,11 +303,30 @@ class AutoAlertEngine:
             )
         ]
 
-    def get_live_alerts(self, budget_tier: Optional[str] = None, category: Optional[str] = None) -> AutoAlertsResponse:
-        """Returns filtered active high-conviction trade alerts for small retail traders."""
+    def get_live_alerts(self, budget_tier: Optional[str] = None, category: Optional[str] = None, user_id: Optional[str] = None) -> AutoAlertsResponse:
+        """Returns filtered active high-conviction trade alerts for small retail traders, including personalized user scrips."""
         alerts = list(self.active_alerts.values())
 
-        if budget_tier and budget_tier != "ALL":
+        # If user_id is provided, incorporate user's monitored scrips
+        if user_id:
+            try:
+                from .user_profile_engine import user_profile_engine
+                user_alerts = user_profile_engine.get_user_alerts(user_id)
+                if budget_tier == "MY_SCRIPS":
+                    # Show only user's personalized scrip radar alerts
+                    return AutoAlertsResponse(
+                        timestamp=datetime.datetime.now().isoformat(),
+                        active_alerts=user_alerts,
+                        total_active=len(user_alerts),
+                        market_regime="PERSONAL_RADAR_ACTIVE"
+                    )
+                # Otherwise, merge user alerts that have triggered into the top of the feed
+                triggered_user_alerts = [u for u in user_alerts if u.status == "IN_BUY_ZONE"]
+                alerts = triggered_user_alerts + alerts
+            except Exception:
+                pass
+
+        if budget_tier and budget_tier != "ALL" and budget_tier != "MY_SCRIPS":
             alerts = [a for a in alerts if a.budget_tier == budget_tier]
 
         if category and category != "ALL":

@@ -14,7 +14,13 @@ import {
   GlobalIndexChatResponse,
   AutoAlertsResponse,
   AutoAlertsStatsResponse,
-  AuditSummaryResponse
+  AuditSummaryResponse,
+  UserProfileSettings,
+  AddScripRequest,
+  UpdateScripRequest,
+  AddCustomScriptRuleRequest,
+  UpdateUserProfileRequest,
+  UserSummaryItem
 } from '../types/market';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -341,11 +347,12 @@ export async function fetchDailyRecommendations(limit = 20): Promise<any> {
   return res.json();
 }
 
-export async function fetchLiveAutoAlerts(budgetTier?: string, category?: string): Promise<AutoAlertsResponse> {
+export async function fetchLiveAutoAlerts(budgetTier?: string, category?: string, userId?: string): Promise<AutoAlertsResponse> {
   let url = `${API_BASE}/auto-alerts/live`;
   const params = new URLSearchParams();
   if (budgetTier && budgetTier !== 'ALL') params.append('budget_tier', budgetTier);
   if (category && category !== 'ALL') params.append('category', category);
+  if (userId) params.append('user_id', userId);
   const qStr = params.toString();
   if (qStr) url += `?${qStr}`;
   const res = await fetch(url, { cache: 'no-store' });
@@ -376,6 +383,100 @@ export async function fetchAutoAlertsAuditSummary(filterOutcome?: string, starti
   if (!res.ok) throw new Error('Failed to fetch recommendation performance audit summary');
   return res.json();
 }
+
+// --- USER-WISE PERSONALIZATION & CUSTOM SCRIP TRACKING ---
+export async function fetchUserProfile(userId = 'default_user'): Promise<UserProfileSettings> {
+  const res = await fetch(`${API_BASE}/user/${userId}/profile`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch user profile for ${userId}`);
+  return res.json();
+}
+
+export async function updateUserProfile(userId: string, req: UpdateUserProfileRequest): Promise<UserProfileSettings> {
+  const res = await fetch(`${API_BASE}/user/${userId}/profile`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+  if (!res.ok) throw new Error('Failed to update user profile settings');
+  return res.json();
+}
+
+export async function addUserScrip(userId: string, req: AddScripRequest): Promise<UserProfileSettings> {
+  const res = await fetch(`${API_BASE}/user/${userId}/scrips`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+  if (!res.ok) throw new Error('Failed to add custom scrip');
+  return res.json();
+}
+
+export async function updateUserScrip(userId: string, scripId: string, req: UpdateScripRequest): Promise<UserProfileSettings> {
+  const res = await fetch(`${API_BASE}/user/${userId}/scrips/${scripId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+  if (!res.ok) throw new Error('Failed to update custom scrip');
+  return res.json();
+}
+
+export async function deleteUserScrip(userId: string, scripId: string): Promise<UserProfileSettings> {
+  const res = await fetch(`${API_BASE}/user/${userId}/scrips/${scripId}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error('Failed to delete custom scrip');
+  return res.json();
+}
+
+export async function addUserCustomRule(userId: string, req: AddCustomScriptRuleRequest): Promise<UserProfileSettings> {
+  const res = await fetch(`${API_BASE}/user/${userId}/custom-rules`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+  if (!res.ok) throw new Error('Failed to add custom script rule');
+  return res.json();
+}
+
+export async function deleteUserCustomRule(userId: string, scriptId: string): Promise<UserProfileSettings> {
+  const res = await fetch(`${API_BASE}/user/${userId}/custom-rules/${scriptId}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error('Failed to delete custom rule');
+  return res.json();
+}
+
+export async function listUserProfiles(): Promise<UserSummaryItem[]> {
+  const res = await fetch(`${API_BASE}/user/list`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to list user profiles');
+  return res.json();
+}
+
+export async function toggleUserScripAlert(userId: string, scripId: string): Promise<UserProfileSettings> {
+  const res = await fetch(`${API_BASE}/user/${userId}/scrips/${scripId}/toggle-alert`, {
+    method: 'POST'
+  });
+  if (!res.ok) throw new Error('Failed to toggle scrip alert');
+  return res.json();
+}
+
+export async function toggleUserCustomRule(userId: string, scriptId: string): Promise<UserProfileSettings> {
+  const res = await fetch(`${API_BASE}/user/${userId}/custom-rules/${scriptId}/toggle`, {
+    method: 'POST'
+  });
+  if (!res.ok) throw new Error('Failed to toggle custom rule');
+  return res.json();
+}
+
+export async function deleteUserProfile(userId: string): Promise<{ success: boolean; user_id: string }> {
+  const res = await fetch(`${API_BASE}/user/${userId}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error('Failed to delete user profile');
+  return res.json();
+}
+
 
 
 

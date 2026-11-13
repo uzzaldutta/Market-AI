@@ -899,6 +899,104 @@ export interface AuditSummaryResponse {
   comparison_items: AuditComparisonItem[];
 }
 
+// --- USER PERSONALIZATION & CUSTOM SCRIPS TYPES ---
+export interface UserScripItem {
+  scrip_id: string;
+  symbol: string;
+  name?: string;
+  exchange: string;
+  instrument_type: string;
+  target_entry_price?: number;
+  alert_condition: 'PRICE_BELOW' | 'PRICE_ABOVE' | 'BREAKOUT_VOLUME' | 'RSI_OVERSOLD' | 'ANY' | string;
+  notes?: string;
+  custom_budget_inr?: number;
+  current_price?: number;
+  change_pct?: number;
+  is_active: boolean;
+  alert_triggered: boolean;
+  created_at: string;
+}
+
+export interface UserCustomScriptRule {
+  script_id: string;
+  title: string;
+  description: string;
+  indicator: string;
+  condition_operator: string;
+  threshold_value: number;
+  action_message: string;
+  is_enabled: boolean;
+  created_at: string;
+}
+
+export interface UserProfileSettings {
+  user_id: string;
+  display_name: string;
+  email?: string;
+  budget_tier: string;
+  risk_appetite: string;
+  max_capital_per_trade_inr: number;
+  max_daily_loss_limit_inr: number;
+  preferred_instruments: string[];
+  preferred_exchanges: string[];
+  sound_alerts_enabled: boolean;
+  auto_execute_paper_trades: boolean;
+  theme: string;
+  scrips: UserScripItem[];
+  custom_rules: UserCustomScriptRule[];
+  updated_at: string;
+}
+
+export interface AddScripRequest {
+  symbol: string;
+  name?: string;
+  exchange?: string;
+  instrument_type?: string;
+  target_entry_price?: number;
+  alert_condition?: string;
+  notes?: string;
+  custom_budget_inr?: number;
+}
+
+export interface UpdateScripRequest {
+  target_entry_price?: number;
+  alert_condition?: string;
+  notes?: string;
+  custom_budget_inr?: number;
+  is_active?: boolean;
+}
+
+export interface AddCustomScriptRuleRequest {
+  title: string;
+  description: string;
+  indicator?: string;
+  condition_operator?: string;
+  threshold_value?: number;
+  action_message: string;
+}
+
+export interface UpdateUserProfileRequest {
+  display_name?: string;
+  email?: string;
+  budget_tier?: string;
+  risk_appetite?: string;
+  max_capital_per_trade_inr?: number;
+  max_daily_loss_limit_inr?: number;
+  preferred_instruments?: string[];
+  preferred_exchanges?: string[];
+  sound_alerts_enabled?: boolean;
+  auto_execute_paper_trades?: boolean;
+  theme?: string;
+}
+
+export interface UserSummaryItem {
+  user_id: string;
+  display_name: string;
+  budget_tier: string;
+  scrips_count: string;
+}
+
+
 
 
 

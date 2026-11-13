@@ -24,7 +24,9 @@ from ..schemas.market import (
     ResearchDossierResponse, OptionStrategyRequest, OptionStrategyPayoffResponse,
     OrderBookDepthResponse, StrategyOptimizationRequest, StrategyOptimizationResponse,
     PreTradeCheckRequest, PreTradeCheckResponse,
-    AutoAlertsResponse, AutoAlertsStatsResponse, AuditSummaryResponse
+    AutoAlertsResponse, AutoAlertsStatsResponse, AuditSummaryResponse,
+    UserProfileSettings, AddScripRequest, UpdateScripRequest,
+    AddCustomScriptRuleRequest, UpdateUserProfileRequest
 )
 from ..providers.manager import get_market_data_provider
 from ..core.nse_instruments import NSE_SYMBOL_INDEX, search_nse_instruments
@@ -56,6 +58,7 @@ from ..engine.orderbook_engine import orderbook_depth_engine
 from ..engine.optimizer_engine import strategy_optimizer_engine
 from ..engine.pretrade_engine import pretrade_engine
 from ..engine.auto_alert_engine import auto_alert_engine
+from ..engine.user_profile_engine import user_profile_engine
 
 router = APIRouter()
 
@@ -463,11 +466,12 @@ def run_pretrade_validation_gate(req: PreTradeCheckRequest):
 
 @router.get("/auto-alerts/live", response_model=AutoAlertsResponse)
 def get_live_auto_alerts(
-    budget_tier: Optional[str] = Query(None, description="Filter by budget: UNDER_5K, UNDER_10K, UNDER_25K, CASH_STOCK"),
-    category: Optional[str] = Query(None, description="Filter by instrument category: INDEX_OPTION, STOCK_OPTION, CASH_EQUITY")
+    budget_tier: Optional[str] = Query(None, description="Filter by budget: UNDER_5K, UNDER_10K, UNDER_25K, CASH_STOCK, MY_SCRIPS"),
+    category: Optional[str] = Query(None, description="Filter by instrument category: INDEX_OPTION, STOCK_OPTION, CASH_EQUITY"),
+    user_id: Optional[str] = Query(None, description="Optional user ID to merge personalized scrip alerts")
 ):
     """Real-time high-conviction trade alerts for small retail traders with best time/price zones."""
-    return auto_alert_engine.get_live_alerts(budget_tier=budget_tier, category=category)
+    return auto_alert_engine.get_live_alerts(budget_tier=budget_tier, category=category, user_id=user_id)
 
 @router.get("/auto-alerts/stats", response_model=AutoAlertsStatsResponse)
 def get_auto_alerts_performance_stats():
@@ -492,6 +496,63 @@ def execute_auto_alert_in_paper(
 ):
     """1-Click direct execution of an automated trade alert into the virtual Paper Trading ledger."""
     return auto_alert_engine.execute_in_paper_trading(alert_id=alert_id, lots=lots)
+
+# --- USER-WISE PERSONALIZATION & CUSTOM SCRIPS ENDPOINTS ---
+@router.get("/user/list")
+def list_available_user_profiles():
+    """Lists all user profiles saved persistently on disk."""
+    return user_profile_engine.list_available_users()
+
+@router.get("/user/{user_id}/profile", response_model=UserProfileSettings)
+def get_user_profile(user_id: str = "default_user"):
+    """Fetches user profile, personalized parameters, custom scrips, and custom script rules."""
+    return user_profile_engine.get_profile(user_id=user_id)
+
+@router.put("/user/{user_id}/profile", response_model=UserProfileSettings)
+def update_user_profile(user_id: str, req: UpdateUserProfileRequest):
+    """Updates personalized user settings (budget tier, risk limits, sound alerts)."""
+    return user_profile_engine.update_profile(user_id=user_id, req=req)
+
+@router.post("/user/{user_id}/scrips", response_model=UserProfileSettings)
+def add_user_custom_scrip(user_id: str, req: AddScripRequest):
+    """Adds a custom stock or contract scrip to the user's personal radar with custom price triggers."""
+    return user_profile_engine.add_scrip(user_id=user_id, req=req)
+
+@router.put("/user/{user_id}/scrips/{scrip_id}", response_model=UserProfileSettings)
+def update_user_custom_scrip(user_id: str, scrip_id: str, req: UpdateScripRequest):
+    """Updates target entry price, alert condition, or notes for a saved scrip."""
+    return user_profile_engine.update_scrip(user_id=user_id, scrip_id=scrip_id, req=req)
+
+@router.delete("/user/{user_id}/scrips/{scrip_id}", response_model=UserProfileSettings)
+def delete_user_custom_scrip(user_id: str, scrip_id: str):
+    """Removes a custom scrip from the user's personal radar."""
+    return user_profile_engine.delete_scrip(user_id=user_id, scrip_id=scrip_id)
+
+@router.post("/user/{user_id}/custom-rules", response_model=UserProfileSettings)
+def add_user_custom_script_rule(user_id: str, req: AddCustomScriptRuleRequest):
+    """Adds a personal algorithmic rule/script to trigger custom alerts."""
+    return user_profile_engine.add_custom_rule(user_id=user_id, req=req)
+
+@router.delete("/user/{user_id}/custom-rules/{script_id}", response_model=UserProfileSettings)
+def delete_user_custom_script_rule(user_id: str, script_id: str):
+    """Removes a custom script rule."""
+    return user_profile_engine.delete_custom_rule(user_id=user_id, script_id=script_id)
+
+@router.post("/user/{user_id}/scrips/{scrip_id}/toggle-alert", response_model=UserProfileSettings)
+def toggle_user_scrip_alert(user_id: str, scrip_id: str):
+    """Toggles alert_triggered state for testing audio chimes and active buy zone signals."""
+    return user_profile_engine.toggle_scrip_alert(user_id=user_id, scrip_id=scrip_id)
+
+@router.post("/user/{user_id}/custom-rules/{script_id}/toggle", response_model=UserProfileSettings)
+def toggle_user_custom_rule(user_id: str, script_id: str):
+    """Toggles enabled state of an algorithmic script rule."""
+    return user_profile_engine.toggle_rule(user_id=user_id, script_id=script_id)
+
+@router.delete("/user/{user_id}")
+def delete_user_profile(user_id: str):
+    """Deletes custom user profile (preserving default_user)."""
+    success = user_profile_engine.delete_user_profile(user_id=user_id)
+    return {"success": success, "user_id": user_id}
 
 @router.get("/health")
 def get_health_status():

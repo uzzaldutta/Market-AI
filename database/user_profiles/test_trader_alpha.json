@@ -1,0 +1,23 @@
+{
+  "user_id": "test_trader_alpha",
+  "display_name": "Alpha Scalper",
+  "email": "test_trader_alpha@bharatmarket.in",
+  "budget_tier": "UNDER_10K",
+  "risk_appetite": "AGGRESSIVE",
+  "max_capital_per_trade_inr": 8000.0,
+  "max_daily_loss_limit_inr": -2000.0,
+  "preferred_instruments": [
+    "INDEX_OPTION",
+    "CASH_EQUITY"
+  ],
+  "preferred_exchanges": [
+    "NSE",
+    "BSE"
+  ],
+  "sound_alerts_enabled": true,
+  "auto_execute_paper_trades": false,
+  "theme": "dark",
+  "scrips": [],
+  "custom_rules": [],
+  "updated_at": "2026-11-13T21:45:29.245664"
+}

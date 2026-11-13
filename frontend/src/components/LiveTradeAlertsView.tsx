@@ -3,18 +3,23 @@
 import React, { useState, useEffect } from 'react';
 import { 
   AutoAlertItem, AutoAlertsStatsResponse, PaperPosition, 
-  AuditSummaryResponse, AuditComparisonItem, EquityCurvePoint 
+  AuditSummaryResponse, AuditComparisonItem, EquityCurvePoint,
+  UserProfileSettings, UserScripItem, UserCustomScriptRule, UserSummaryItem
 } from '../types/market';
 import { 
   fetchLiveAutoAlerts, fetchAutoAlertsStats, executeAutoAlertInPaper, 
-  fetchPaperAccount, placePaperOrder, fetchAutoAlertsAuditSummary 
+  fetchPaperAccount, placePaperOrder, fetchAutoAlertsAuditSummary,
+  fetchUserProfile, updateUserProfile, addUserScrip, deleteUserScrip,
+  addUserCustomRule, deleteUserCustomRule, listUserProfiles,
+  toggleUserScripAlert, toggleUserCustomRule, deleteUserProfile
 } from '../lib/api';
 import { PriceFlash } from './common/PriceFlash';
 import { 
   Zap, Bell, CheckCircle2, ShieldAlert, ArrowUpRight, TrendingUp, TrendingDown,
   Clock, Sparkles, Filter, ChevronRight, Award, Target, HelpCircle,
   Sliders, Layers, RefreshCw, AlertTriangle, XCircle, Wallet, BarChart3,
-  Check, ArrowRight, ShieldCheck
+  Check, ArrowRight, ShieldCheck, User, Plus, Trash2, Edit3, Settings,
+  Shield, DollarSign, Volume2, VolumeX, Bookmark
 } from 'lucide-react';
 
 interface LiveTradeAlertsViewProps {
@@ -27,7 +32,7 @@ export const LiveTradeAlertsView: React.FC<LiveTradeAlertsViewProps> = ({
   const [alerts, setAlerts] = useState<AutoAlertItem[]>([]);
   const [stats, setStats] = useState<AutoAlertsStatsResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [activeDeskTab, setActiveDeskTab] = useState<'LIVE' | 'AUDIT' | 'WALLET'>('LIVE');
+  const [activeDeskTab, setActiveDeskTab] = useState<'LIVE' | 'AUDIT' | 'WALLET' | 'PERSONAL'>('LIVE');
   const [budgetFilter, setBudgetFilter] = useState<string>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [isQuantMode, setIsQuantMode] = useState<boolean>(false);
@@ -43,10 +48,35 @@ export const LiveTradeAlertsView: React.FC<LiveTradeAlertsViewProps> = ({
   const [auditLoading, setAuditLoading] = useState<boolean>(false);
   const [simCapital, setSimCapital] = useState<number>(10000);
 
+  // User-wise Personalization & Custom Scrips States
+  const [userProfile, setUserProfile] = useState<UserProfileSettings | null>(null);
+  const [activeUserId, setActiveUserId] = useState<string>('default_user');
+  const [allUsers, setAllUsers] = useState<UserSummaryItem[]>([]);
+  const [profileLoading, setProfileLoading] = useState<boolean>(false);
+
+  // Form states for adding custom scrip
+  const [newScripSymbol, setNewScripSymbol] = useState<string>('');
+  const [newScripExchange, setNewScripExchange] = useState<string>('NSE');
+  const [newScripType, setNewScripType] = useState<string>('CASH_EQUITY');
+  const [newScripTarget, setNewScripTarget] = useState<string>('');
+  const [newScripCondition, setNewScripCondition] = useState<string>('PRICE_BELOW');
+  const [newScripNotes, setNewScripNotes] = useState<string>('');
+  const [newScripBudget, setNewScripBudget] = useState<string>('5000');
+  const [isAddingScrip, setIsAddingScrip] = useState<boolean>(false);
+
+  // Form states for adding custom rule
+  const [newRuleTitle, setNewRuleTitle] = useState<string>('');
+  const [newRuleDescription, setNewRuleDescription] = useState<string>('');
+  const [newRuleIndicator, setNewRuleIndicator] = useState<string>('VOLUME_SURGE');
+  const [newRuleOperator, setNewRuleOperator] = useState<string>('GREATER_THAN');
+  const [newRuleThreshold, setNewRuleThreshold] = useState<string>('1.8');
+  const [newRuleAction, setNewRuleAction] = useState<string>('Volume surge trigger');
+  const [isAddingRule, setIsAddingRule] = useState<boolean>(false);
+
   const loadData = async () => {
     try {
       const [alertsRes, statsRes, paperRes] = await Promise.all([
-        fetchLiveAutoAlerts(budgetFilter, categoryFilter),
+        fetchLiveAutoAlerts(budgetFilter, categoryFilter, activeUserId),
         fetchAutoAlertsStats(),
         fetchPaperAccount().catch(() => null)
       ]);
@@ -78,11 +108,160 @@ export const LiveTradeAlertsView: React.FC<LiveTradeAlertsViewProps> = ({
     loadData();
     const interval = setInterval(loadData, 6000);
     return () => clearInterval(interval);
-  }, [budgetFilter, categoryFilter]);
+  }, [budgetFilter, categoryFilter, activeUserId]);
 
   useEffect(() => {
     loadAuditData();
   }, [auditFilter, simCapital]);
+
+  const loadUserProfile = async () => {
+    setProfileLoading(true);
+    try {
+      const [prof, uList] = await Promise.all([
+        fetchUserProfile(activeUserId),
+        listUserProfiles().catch(() => [])
+      ]);
+      setUserProfile(prof);
+      setAllUsers(uList);
+    } catch (e) {
+      console.error('Failed to load user profile:', e);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUserProfile();
+  }, [activeUserId]);
+
+  const handleAddScripSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newScripSymbol.trim()) return;
+    setIsAddingScrip(true);
+    try {
+      const updated = await addUserScrip(activeUserId, {
+        symbol: newScripSymbol.trim().toUpperCase(),
+        exchange: newScripExchange,
+        instrument_type: newScripType,
+        target_entry_price: newScripTarget ? parseFloat(newScripTarget) : undefined,
+        alert_condition: newScripCondition,
+        notes: newScripNotes || undefined,
+        custom_budget_inr: newScripBudget ? parseFloat(newScripBudget) : 5000.0
+      });
+      setUserProfile(updated);
+      setNewScripSymbol('');
+      setNewScripTarget('');
+      setNewScripNotes('');
+      setFeedbackMessage(`Scrip ${newScripSymbol.toUpperCase()} added to your personalized radar!`);
+    } catch (err: any) {
+      setFeedbackMessage(err.message || 'Failed to add scrip');
+    } finally {
+      setIsAddingScrip(false);
+    }
+  };
+
+  const handleDeleteScrip = async (scripId: string) => {
+    try {
+      const updated = await deleteUserScrip(activeUserId, scripId);
+      setUserProfile(updated);
+      setFeedbackMessage('Scrip removed from your radar.');
+    } catch (err: any) {
+      setFeedbackMessage(err.message || 'Failed to delete scrip');
+    }
+  };
+
+  const handleAddRuleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRuleTitle.trim()) return;
+    setIsAddingRule(true);
+    try {
+      const updated = await addUserCustomRule(activeUserId, {
+        title: newRuleTitle.trim(),
+        description: newRuleDescription.trim(),
+        indicator: newRuleIndicator,
+        condition_operator: newRuleOperator,
+        threshold_value: parseFloat(newRuleThreshold) || 1.8,
+        action_message: newRuleAction.trim() || 'Rule Alert Triggered'
+      });
+      setUserProfile(updated);
+      setNewRuleTitle('');
+      setNewRuleDescription('');
+      setNewRuleAction('');
+      setFeedbackMessage(`Custom script rule "${newRuleTitle}" saved!`);
+    } catch (err: any) {
+      setFeedbackMessage(err.message || 'Failed to add custom rule');
+    } finally {
+      setIsAddingRule(false);
+    }
+  };
+
+  const handleDeleteRule = async (scriptId: string) => {
+    try {
+      const updated = await deleteUserCustomRule(activeUserId, scriptId);
+      setUserProfile(updated);
+      setFeedbackMessage('Custom script rule removed.');
+    } catch (err: any) {
+      setFeedbackMessage(err.message || 'Failed to delete rule');
+    }
+  };
+
+  const handleUpdatePreferences = async (updates: any) => {
+    try {
+      const updated = await updateUserProfile(activeUserId, updates);
+      setUserProfile(updated);
+      setFeedbackMessage('Personal settings saved successfully on disk!');
+    } catch (err: any) {
+      setFeedbackMessage(err.message || 'Failed to update preferences');
+    }
+  };
+
+  const handleToggleScripAlert = async (scripId: string) => {
+    try {
+      const updated = await toggleUserScripAlert(activeUserId, scripId);
+      setUserProfile(updated);
+      const targetScrip = updated.scrips.find(s => s.scrip_id === scripId);
+      if (targetScrip?.alert_triggered) {
+        setFeedbackMessage(`🚨 Alert Trigger Active for ${targetScrip.symbol}! Visible on live trade alerts.`);
+      } else {
+        setFeedbackMessage(`Alert reset to normal monitoring for ${targetScrip?.symbol}.`);
+      }
+      loadData();
+    } catch (err: any) {
+      setFeedbackMessage(err.message || 'Failed to toggle alert');
+    }
+  };
+
+  const handleToggleRule = async (scriptId: string) => {
+    try {
+      const updated = await toggleUserCustomRule(activeUserId, scriptId);
+      setUserProfile(updated);
+      setFeedbackMessage('Algorithmic script rule status updated.');
+    } catch (err: any) {
+      setFeedbackMessage(err.message || 'Failed to toggle rule');
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (userId === 'default_user') return;
+    if (!confirm(`Are you sure you want to delete profile "${userId}"?`)) return;
+    try {
+      await deleteUserProfile(userId);
+      setActiveUserId('default_user');
+      setFeedbackMessage(`User profile "${userId}" deleted successfully.`);
+      loadUserProfile();
+    } catch (err: any) {
+      setFeedbackMessage(err.message || 'Failed to delete user profile');
+    }
+  };
+
+  const handleQuickFillScrip = (symbol: string, ex: string, type: string, target: number, notes: string, budget: number) => {
+    setNewScripSymbol(symbol);
+    setNewScripExchange(ex);
+    setNewScripType(type);
+    setNewScripTarget(target.toString());
+    setNewScripNotes(notes);
+    setNewScripBudget(budget.toString());
+  };
 
   const handleExecute = async (alert: AutoAlertItem) => {
     setExecutingId(alert.alert_id);
@@ -188,6 +367,19 @@ export const LiveTradeAlertsView: React.FC<LiveTradeAlertsViewProps> = ({
           >
             <Wallet className="w-3.5 h-3.5" />
             <span>₹10,000 Wallet Tracker</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveDeskTab('PERSONAL')}
+            className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+              activeDeskTab === 'PERSONAL'
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-950/40'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Bookmark className="w-3.5 h-3.5 text-purple-300" />
+            <span>⚙️ My Scrips &amp; Rules</span>
           </button>
         </div>
       </div>
@@ -301,6 +493,15 @@ export const LiveTradeAlertsView: React.FC<LiveTradeAlertsViewProps> = ({
                 }`}
               >
                 💵 Under ₹10,000 (Standard)
+              </button>
+              <button
+                type="button"
+                onClick={() => setBudgetFilter('MY_SCRIPS')}
+                className={`px-3 py-1 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+                  budgetFilter === 'MY_SCRIPS' ? 'bg-purple-600 text-white shadow' : 'bg-slate-800 text-purple-300 hover:text-white'
+                }`}
+              >
+                <Bookmark className="w-3.5 h-3.5" /> ⭐ My Monitored Radar ({userProfile?.scrips.length || 0})
               </button>
             </div>
 
@@ -1058,6 +1259,541 @@ export const LiveTradeAlertsView: React.FC<LiveTradeAlertsViewProps> = ({
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: USER-WISE PERSONALIZATION & CUSTOM SCRIPS */}
+      {activeDeskTab === 'PERSONAL' && (
+        <div className="space-y-6">
+          {/* User Identity & Multi-User Switcher Bar */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-900 to-slate-900 border border-purple-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-purple-500/20 text-purple-400">
+                <User className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-black text-white font-display">
+                    {userProfile?.display_name || 'Retail Small Account Trader'}
+                  </h3>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30">
+                    USER ID: {activeUserId}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Your custom scrips, price targets, budget rules, and algorithmic scripts are saved user-wise on disk.
+                </p>
+              </div>
+            </div>
+
+            {/* Profile Switcher */}
+            <div className="flex items-center gap-2 font-mono text-xs">
+              <span className="text-slate-400 text-[11px] font-bold">Switch User:</span>
+              <select
+                value={activeUserId}
+                onChange={(e) => setActiveUserId(e.target.value)}
+                className="bg-slate-950 text-white px-3 py-1.5 rounded-xl border border-slate-800 text-xs focus:border-purple-500 outline-none"
+              >
+                {allUsers.length > 0 ? (
+                  allUsers.map(u => (
+                    <option key={u.user_id} value={u.user_id}>
+                      {u.display_name} ({u.scrips_count} scrips)
+                    </option>
+                  ))
+                ) : (
+                  <option value="default_user">Retail Small Account (default_user)</option>
+                )}
+              </select>
+              <button
+                type="button"
+                onClick={() => {
+                  const newName = prompt('Enter a new user profile ID (e.g. trader_rahul):');
+                  if (newName && newName.trim()) {
+                    setActiveUserId(newName.trim().toLowerCase());
+                  }
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 font-bold transition-all"
+                title="Create a new user profile"
+              >
+                + New User
+              </button>
+              {activeUserId !== 'default_user' && (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteUser(activeUserId)}
+                  className="px-2.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold transition-all"
+                  title="Delete this custom profile"
+                >
+                  Delete User
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 1. Personal Risk & Budget Preference Card */}
+          {userProfile && (
+            <div className="p-5 rounded-2xl bg-[#090e1a]/95 border border-slate-800 space-y-4 font-mono">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-purple-400" /> My Personal Trading Parameters
+                </h4>
+                <span className="text-[11px] text-slate-500 font-sans">
+                  Auto-saved to database/user_profiles/{activeUserId}.json
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                {/* Budget Tier */}
+                <div className="space-y-1.5">
+                  <label className="text-slate-400 font-bold block text-[11px]">PREFERRED BUDGET TIER</label>
+                  <select
+                    value={userProfile.budget_tier}
+                    onChange={(e) => handleUpdatePreferences({ budget_tier: e.target.value })}
+                    className="w-full bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 focus:border-purple-500 outline-none font-bold"
+                  >
+                    <option value="UNDER_5K">💰 Under ₹5,000 (Micro Capital)</option>
+                    <option value="UNDER_10K">💵 Under ₹10,000 (Standard)</option>
+                    <option value="UNDER_25K">💎 Under ₹25,000 (Growth)</option>
+                    <option value="UNLIMITED">🚀 Unlimited</option>
+                  </select>
+                </div>
+
+                {/* Max Capital Per Trade */}
+                <div className="space-y-1.5">
+                  <label className="text-slate-400 font-bold block text-[11px]">MAX CAPITAL PER CALL (₹)</label>
+                  <input
+                    type="number"
+                    value={userProfile.max_capital_per_trade_inr}
+                    onChange={(e) => handleUpdatePreferences({ max_capital_per_trade_inr: parseFloat(e.target.value) || 5000 })}
+                    className="w-full bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 focus:border-purple-500 outline-none font-bold"
+                  />
+                </div>
+
+                {/* Max Daily Loss Limit (Circuit Breaker) */}
+                <div className="space-y-1.5">
+                  <label className="text-slate-400 font-bold block text-[11px]">DAILY LOSS CIRCUIT BREAKER (₹)</label>
+                  <input
+                    type="number"
+                    value={userProfile.max_daily_loss_limit_inr}
+                    onChange={(e) => handleUpdatePreferences({ max_daily_loss_limit_inr: parseFloat(e.target.value) || -1500 })}
+                    className="w-full bg-slate-900 text-rose-400 p-2.5 rounded-xl border border-slate-800 focus:border-purple-500 outline-none font-bold"
+                  />
+                </div>
+
+                {/* Risk Appetite */}
+                <div className="space-y-1.5">
+                  <label className="text-slate-400 font-bold block text-[11px]">RISK APPETITE</label>
+                  <select
+                    value={userProfile.risk_appetite}
+                    onChange={(e) => handleUpdatePreferences({ risk_appetite: e.target.value })}
+                    className="w-full bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 focus:border-purple-500 outline-none font-bold"
+                  >
+                    <option value="CONSERVATIVE">🛡️ Conservative (Min 1:3 R:R)</option>
+                    <option value="BALANCED">⚖️ Balanced (1:2 R:R)</option>
+                    <option value="AGGRESSIVE">⚡ Aggressive (Scalping)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Sound alert toggle */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-800/80 text-xs">
+                <span className="text-slate-400 flex items-center gap-2">
+                  <Volume2 className="w-4 h-4 text-purple-400" /> Audio Chime on Buy Alerts:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleUpdatePreferences({ sound_alerts_enabled: !userProfile.sound_alerts_enabled })}
+                  className={`px-3 py-1 rounded-lg font-bold transition-all ${
+                    userProfile.sound_alerts_enabled ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  {userProfile.sound_alerts_enabled ? '🔔 Sound Enabled' : '🔕 Muted'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 2. Add Custom Scrip / Stock Form */}
+          <div className="p-5 rounded-2xl bg-[#090e1a]/95 border border-slate-800 space-y-4 font-sans">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 font-mono">
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <Plus className="w-4 h-4 text-emerald-400" /> ➕ Add Custom Scrip / Stock to My Radar
+              </h4>
+              <span className="text-[11px] text-slate-400">
+                Supports all NSE &amp; BSE Equities, Index Options &amp; Stock Options
+              </span>
+            </div>
+
+            {/* Quick-Pick Popular Indian Scrips */}
+            <div className="space-y-1.5 font-mono text-xs">
+              <span className="text-[11px] text-slate-400 block font-bold">⚡ Quick Presets (1-Click Fill):</span>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { sym: 'TATAMOTORS', ex: 'NSE', type: 'CASH_EQUITY', target: 835, notes: 'Dip buy on 20 EMA bounce', bud: 8400 },
+                  { sym: 'RELIANCE', ex: 'NSE', type: 'CASH_EQUITY', target: 2980, notes: 'Resistance breakout target', bud: 6000 },
+                  { sym: 'INFY', ex: 'NSE', type: 'CASH_EQUITY', target: 1850, notes: 'Tech accumulation zone', bud: 5500 },
+                  { sym: 'FEDERALBNK', ex: 'NSE', type: 'CASH_EQUITY', target: 193, notes: 'Small account retail compounding', bud: 4000 },
+                  { sym: 'IRFC', ex: 'NSE', type: 'CASH_EQUITY', target: 160, notes: 'Rail momentum pullback support', bud: 3200 },
+                  { sym: 'NIFTY 25400 CE', ex: 'NSE', type: 'INDEX_OPTION', target: 72, notes: 'Intraday breakout momentum call', bud: 3600 }
+                ].map(item => (
+                  <button
+                    key={item.sym}
+                    type="button"
+                    onClick={() => handleQuickFillScrip(item.sym, item.ex, item.type, item.target, item.notes, item.bud)}
+                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-emerald-300 border border-slate-700 text-[11px] font-bold transition-all flex items-center gap-1 active:scale-95"
+                  >
+                    <span>+</span> {item.sym}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <form onSubmit={handleAddScripSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono">
+                {/* Symbol */}
+                <div className="space-y-1">
+                  <label className="text-slate-400 font-bold block text-[11px]">SCRIP / SYMBOL</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. TATAMOTORS, RELIANCE, NIFTY 25400 CE"
+                    value={newScripSymbol}
+                    onChange={(e) => setNewScripSymbol(e.target.value)}
+                    className="w-full bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 focus:border-emerald-500 outline-none uppercase font-bold"
+                  />
+                </div>
+
+                {/* Exchange */}
+                <div className="space-y-1">
+                  <label className="text-slate-400 font-bold block text-[11px]">EXCHANGE</label>
+                  <select
+                    value={newScripExchange}
+                    onChange={(e) => setNewScripExchange(e.target.value)}
+                    className="w-full bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 focus:border-emerald-500 outline-none font-bold"
+                  >
+                    <option value="NSE">NSE (National Stock Exchange)</option>
+                    <option value="BSE">BSE (Bombay Stock Exchange)</option>
+                  </select>
+                </div>
+
+                {/* Instrument Type */}
+                <div className="space-y-1">
+                  <label className="text-slate-400 font-bold block text-[11px]">INSTRUMENT CLASS</label>
+                  <select
+                    value={newScripType}
+                    onChange={(e) => setNewScripType(e.target.value)}
+                    className="w-full bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 focus:border-emerald-500 outline-none font-bold"
+                  >
+                    <option value="CASH_EQUITY">Cash Equity (Delivery/Swing)</option>
+                    <option value="INDEX_OPTION">Index Option (NIFTY/SENSEX)</option>
+                    <option value="STOCK_OPTION">Stock Option Contract</option>
+                  </select>
+                </div>
+
+                {/* Target Entry Price */}
+                <div className="space-y-1">
+                  <label className="text-slate-400 font-bold block text-[11px]">TARGET ALERT PRICE (₹)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="e.g. 835.0"
+                    value={newScripTarget}
+                    onChange={(e) => setNewScripTarget(e.target.value)}
+                    className="w-full bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 focus:border-emerald-500 outline-none font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
+                {/* Alert Condition */}
+                <div className="space-y-1">
+                  <label className="text-slate-400 font-bold block text-[11px]">ALERT CONDITION</label>
+                  <select
+                    value={newScripCondition}
+                    onChange={(e) => setNewScripCondition(e.target.value)}
+                    className="w-full bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 focus:border-emerald-500 outline-none"
+                  >
+                    <option value="PRICE_BELOW">📉 Price Drops To / Below Target (Dip Buy)</option>
+                    <option value="PRICE_ABOVE">📈 Price Breaks Above Target (Momentum)</option>
+                    <option value="BREAKOUT_VOLUME">🔥 Volume Surge Breakout</option>
+                    <option value="RSI_OVERSOLD">⚡ 15m RSI Oversold (&lt;30)</option>
+                    <option value="ANY">🎯 Any Entry Near Target (±2%)</option>
+                  </select>
+                </div>
+
+                {/* Allocated Budget */}
+                <div className="space-y-1">
+                  <label className="text-slate-400 font-bold block text-[11px]">ALLOCATED CAPITAL (₹)</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 5000"
+                    value={newScripBudget}
+                    onChange={(e) => setNewScripBudget(e.target.value)}
+                    className="w-full bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 focus:border-emerald-500 outline-none font-bold"
+                  />
+                </div>
+
+                {/* Personal Notes */}
+                <div className="space-y-1">
+                  <label className="text-slate-400 font-bold block text-[11px]">PERSONAL TRADING NOTES</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Buy on 20 EMA bounce with 1 lot"
+                    value={newScripNotes}
+                    onChange={(e) => setNewScripNotes(e.target.value)}
+                    className="w-full bg-slate-900 text-white p-2.5 rounded-xl border border-slate-800 focus:border-emerald-500 outline-none font-sans"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isAddingScrip}
+                className="py-2.5 px-5 rounded-xl font-black text-xs bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2 transition-all active:scale-95"
+              >
+                {isAddingScrip ? (
+                  <span>Saving Scrip to Radar...</span>
+                ) : (
+                  <span className="flex items-center gap-1.5"><Plus className="w-4 h-4" /> Save Scrip to My Personalized Radar</span>
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* 3. My Saved Custom Scrips Grid (User Watchlist) */}
+          <div className="space-y-3 font-sans">
+            <div className="flex items-center justify-between font-mono">
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <Bookmark className="w-4 h-4 text-purple-400" /> My Monitored Custom Scrips ({userProfile?.scrips.length || 0})
+              </h4>
+              <span className="text-[11px] text-slate-400">
+                Personalized tracking for {activeUserId}
+              </span>
+            </div>
+
+            {userProfile?.scrips.length === 0 ? (
+              <div className="p-8 text-center rounded-2xl bg-slate-900/60 border border-slate-800 text-slate-400 font-mono text-xs">
+                No custom scrips saved yet. Add your preferred stocks or option strikes using the form above!
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {userProfile?.scrips.map(scrip => (
+                  <div
+                    key={scrip.scrip_id}
+                    className={`rounded-2xl p-4 border-2 transition-all space-y-3 font-sans shadow-lg relative overflow-hidden ${
+                      scrip.alert_triggered
+                        ? 'bg-[#091522] border-emerald-500 shadow-emerald-950/40 ring-1 ring-emerald-500/30'
+                        : 'bg-[#090e1a]/95 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    {/* Header: Symbol & Status */}
+                    <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2">
+                      <div>
+                        <h5 className="text-base font-black text-white flex items-center gap-2">
+                          <span>{scrip.symbol}</span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                            {scrip.exchange}
+                          </span>
+                        </h5>
+                        <span className="text-[11px] font-mono text-slate-400 block mt-0.5">
+                          {scrip.name || scrip.instrument_type}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${
+                          scrip.alert_triggered
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse'
+                            : 'bg-slate-800 text-slate-400'
+                        }`}>
+                          {scrip.alert_triggered ? '🟢 IN BUY ZONE' : '🟡 MONITORING'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteScrip(scrip.scrip_id)}
+                          className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                          title="Remove Scrip"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Price & Target Metrics */}
+                    <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                      <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80">
+                        <span className="text-[10px] text-slate-400 block font-bold uppercase">LIVE LTP</span>
+                        <div className="text-sm font-black text-white mt-0.5">
+                          ₹{scrip.current_price?.toFixed(1) || '—'}
+                          <span className={`text-[10px] ml-1 font-normal ${
+                            (scrip.change_pct || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                          }`}>
+                            {(scrip.change_pct || 0) >= 0 ? '+' : ''}{scrip.change_pct?.toFixed(2)}%
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80">
+                        <span className="text-[10px] text-cyan-400 block font-bold uppercase">TARGET ALERT</span>
+                        <div className="text-sm font-black text-emerald-400 mt-0.5">
+                          {scrip.target_entry_price ? `₹${scrip.target_entry_price}` : 'Any Price'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Alert Rule & Notes */}
+                    <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs space-y-1">
+                      <div className="flex justify-between text-[11px] font-mono text-slate-400">
+                        <span>Trigger Rule:</span>
+                        <span className="text-white font-bold">{scrip.alert_condition.replace('_', ' ')}</span>
+                      </div>
+                      {scrip.notes && (
+                        <p className="text-[11px] text-slate-300 italic pt-1 border-t border-slate-800/60 font-sans">
+                          &ldquo;{scrip.notes}&rdquo;
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleScripAlert(scrip.scrip_id)}
+                        className={`w-full py-1.5 px-3 rounded-xl font-bold font-mono text-xs flex items-center justify-center gap-1.5 transition-all ${
+                          scrip.alert_triggered
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30'
+                            : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30'
+                        }`}
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        {scrip.alert_triggered ? 'Alert Triggered (Click to Reset)' : '⚡ Simulate Trigger Alert'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 4. Custom Algorithmic Script Rules */}
+          <div className="p-5 rounded-2xl bg-[#090e1a]/95 border border-slate-800 space-y-4 font-sans">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 font-mono">
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-cyan-400" /> ⚡ My Algorithmic Script Rules ({userProfile?.custom_rules.length || 0})
+              </h4>
+              <span className="text-[11px] text-slate-400">
+                Personal indicator logic executed automatically
+              </span>
+            </div>
+
+            {/* Add Rule Form */}
+            <form onSubmit={handleAddRuleSubmit} className="space-y-3 font-mono text-xs p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+              <span className="text-[11px] text-cyan-300 font-bold block uppercase">
+                Create New Personal Strategy Rule:
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div>
+                  <label className="text-slate-400 block text-[10px] font-bold">RULE TITLE</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Volume Breakout"
+                    value={newRuleTitle}
+                    onChange={(e) => setNewRuleTitle(e.target.value)}
+                    className="w-full bg-slate-900 text-white p-2 rounded-lg border border-slate-800 focus:border-cyan-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block text-[10px] font-bold">INDICATOR</label>
+                  <select
+                    value={newRuleIndicator}
+                    onChange={(e) => setNewRuleIndicator(e.target.value)}
+                    className="w-full bg-slate-900 text-white p-2 rounded-lg border border-slate-800 focus:border-cyan-500 outline-none"
+                  >
+                    <option value="VOLUME_SURGE">Volume Surge Ratio</option>
+                    <option value="RSI">RSI Momentum Level</option>
+                    <option value="EMA_CROSS">EMA 20/50 Cross</option>
+                    <option value="VWAP">Price vs VWAP</option>
+                    <option value="PRICE_BREAKOUT">Range Breakout</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block text-[10px] font-bold">CONDITION &amp; VALUE</label>
+                  <div className="flex gap-1.5">
+                    <select
+                      value={newRuleOperator}
+                      onChange={(e) => setNewRuleOperator(e.target.value)}
+                      className="bg-slate-900 text-white p-2 rounded-lg border border-slate-800 focus:border-cyan-500 outline-none w-1/2"
+                    >
+                      <option value="GREATER_THAN">&gt; (Above)</option>
+                      <option value="LESS_THAN">&lt; (Below)</option>
+                    </select>
+                    <input
+                      type="number"
+                      step="any"
+                      value={newRuleThreshold}
+                      onChange={(e) => setNewRuleThreshold(e.target.value)}
+                      className="bg-slate-900 text-white p-2 rounded-lg border border-slate-800 focus:border-cyan-500 outline-none w-1/2 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block text-[10px] font-bold">ACTION</label>
+                  <button
+                    type="submit"
+                    disabled={isAddingRule}
+                    className="w-full mt-3.5 py-2 px-3 rounded-lg font-bold text-xs bg-cyan-600 hover:bg-cyan-500 text-white shadow transition-all"
+                  >
+                    + Add Rule
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            {/* List of active script rules */}
+            <div className="space-y-2">
+              {userProfile?.custom_rules.map(rule => (
+                <div
+                  key={rule.script_id}
+                  className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-3 text-xs font-mono"
+                >
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-white">{rule.title}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                        {rule.indicator} {rule.condition_operator === 'GREATER_THAN' ? '>' : '<'} {rule.threshold_value}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 font-sans">{rule.description || rule.action_message}</p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleRule(rule.script_id)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition-all ${
+                        rule.is_enabled
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-slate-800 text-slate-500 border border-slate-700'
+                      }`}
+                    >
+                      {rule.is_enabled ? '🟢 ACTIVE' : '⚪ DISABLED'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteRule(rule.script_id)}
+                      className="p-1 rounded text-slate-500 hover:text-rose-400 transition-colors"
+                      title="Delete Rule"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

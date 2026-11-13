@@ -1051,6 +1051,90 @@ class AuditSummaryResponse(BaseModel):
     equity_curve: List[EquityCurvePoint]
     comparison_items: List[AuditComparisonItem]
 
+# --- USER-WISE PERSONALIZATION & CUSTOM SCRIPS SCHEMAS ---
+class UserScripItem(BaseModel):
+    scrip_id: str
+    symbol: str
+    name: Optional[str] = None
+    exchange: str = "NSE"
+    instrument_type: str = "CASH_EQUITY" # "CASH_EQUITY", "INDEX_OPTION", "STOCK_OPTION"
+    target_entry_price: Optional[float] = None
+    alert_condition: str = "ANY" # "PRICE_BELOW", "PRICE_ABOVE", "BREAKOUT_VOLUME", "RSI_OVERSOLD", "ANY"
+    notes: Optional[str] = None
+    custom_budget_inr: Optional[float] = None
+    current_price: Optional[float] = None
+    change_pct: Optional[float] = None
+    is_active: bool = True
+    alert_triggered: bool = False
+    created_at: str
+
+class UserCustomScriptRule(BaseModel):
+    script_id: str
+    title: str
+    description: str
+    indicator: str = "RSI" # "RSI", "EMA_CROSS", "VOLUME_SURGE", "VWAP", "PRICE_BREAKOUT"
+    condition_operator: str = "LESS_THAN" # "GREATER_THAN", "LESS_THAN", "CROSSES_ABOVE", "CROSSES_BELOW"
+    threshold_value: float = 30.0
+    action_message: str = "RSI Oversold Condition Triggered"
+    is_enabled: bool = True
+    created_at: str
+
+class UserProfileSettings(BaseModel):
+    user_id: str = "default_user"
+    display_name: str = "Retail Trader"
+    email: Optional[str] = None
+    budget_tier: str = "UNDER_5K" # "UNDER_5K", "UNDER_10K", "UNDER_25K", "UNLIMITED"
+    risk_appetite: str = "BALANCED" # "CONSERVATIVE", "BALANCED", "AGGRESSIVE"
+    max_capital_per_trade_inr: float = 5000.0
+    max_daily_loss_limit_inr: float = -1500.0
+    preferred_instruments: List[str] = ["INDEX_OPTION", "CASH_EQUITY"]
+    preferred_exchanges: List[str] = ["NSE", "BSE"]
+    sound_alerts_enabled: bool = True
+    auto_execute_paper_trades: bool = False
+    theme: str = "dark"
+    scrips: List[UserScripItem] = []
+    custom_rules: List[UserCustomScriptRule] = []
+    updated_at: str
+
+class AddScripRequest(BaseModel):
+    symbol: str
+    name: Optional[str] = None
+    exchange: str = "NSE"
+    instrument_type: str = "CASH_EQUITY"
+    target_entry_price: Optional[float] = None
+    alert_condition: str = "ANY"
+    notes: Optional[str] = None
+    custom_budget_inr: Optional[float] = None
+
+class UpdateScripRequest(BaseModel):
+    target_entry_price: Optional[float] = None
+    alert_condition: Optional[str] = None
+    notes: Optional[str] = None
+    custom_budget_inr: Optional[float] = None
+    is_active: Optional[bool] = None
+
+class AddCustomScriptRuleRequest(BaseModel):
+    title: str
+    description: str
+    indicator: str = "RSI"
+    condition_operator: str = "LESS_THAN"
+    threshold_value: float = 30.0
+    action_message: str
+
+class UpdateUserProfileRequest(BaseModel):
+    display_name: Optional[str] = None
+    email: Optional[str] = None
+    budget_tier: Optional[str] = None
+    risk_appetite: Optional[str] = None
+    max_capital_per_trade_inr: Optional[float] = None
+    max_daily_loss_limit_inr: Optional[float] = None
+    preferred_instruments: Optional[List[str]] = None
+    preferred_exchanges: Optional[List[str]] = None
+    sound_alerts_enabled: Optional[bool] = None
+    auto_execute_paper_trades: Optional[bool] = None
+    theme: Optional[str] = None
+
+
 
 
 
