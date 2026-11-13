@@ -104,9 +104,9 @@ class PaperTradingEngine:
         return None
 
     def _resolve_option_fair_price(self, underlying_price: float, strike: float, option_type: str) -> float:
-        """Estimates fair option premium using Black-Scholes when not provided."""
-        t = 14.0 / 365.0 # default 2-week expiry proxy
-        iv = 0.16 # ~16% typical IV for Indian markets
+        """Estimates fair option premium using Black-Scholes for weekly Indian options."""
+        t = 5.0 / 365.0 # standard weekly expiry proxy (~5 days)
+        iv = 0.135 # calibrated to India VIX (~13.5%)
         r = 0.065 # 6.5% risk free rate
         calc_price = OptionsMath.black_scholes_price(
             s=underlying_price, k=strike, t=t, r=r, sigma=iv, option_type=option_type.upper()
@@ -156,17 +156,18 @@ class PaperTradingEngine:
             required_funds = margin_required + charges
 
         elif inst_type == "OPTIONS":
-            strike = order_req.strike_price if order_req.strike_price else round(current_market_price, -1)
+            raw_strike = order_req.strike_price if order_req.strike_price else round(current_market_price, -1)
+            strike_int = int(round(float(raw_strike)))
             opt_type = (order_req.option_type or "CE").upper()
-            expiry = order_req.expiry_date or "NEAR"
-            pos_key = f"{sym}_OPT_{strike}_{opt_type}_{expiry}"
-            contract_display = f"{sym} {int(strike)} {opt_type}"
+            expiry = str(order_req.expiry_date or "NEAR").upper().strip()
+            pos_key = f"{sym}_OPT_{strike_int}_{opt_type}_{expiry}"
+            contract_display = f"{sym} {strike_int} {opt_type}"
             
             # Determine premium
             if order_req.price and order_req.price > 0:
                 exec_price = order_req.price
             else:
-                exec_price = self._resolve_option_fair_price(current_market_price, strike, opt_type)
+                exec_price = self._resolve_option_fair_price(current_market_price, strike_int, opt_type)
             
             total_units = order_req.quantity * lot_size
             if order_req.side == OrderSide.BUY:
@@ -208,6 +209,17 @@ class PaperTradingEngine:
                 self.processed_client_ids.add(client_id)
                 return PaperOrderResponse(**rejected_order)
 
+        # For options, reconcile with existing open position with same symbol, strike & type if squaring off
+        if inst_type == "OPTIONS" and pos_key not in self.positions:
+            for ex_key, ex_pos in self.positions.items():
+                if (ex_pos.get("symbol") == sym and
+                    ex_pos.get("instrument_type") == "OPTIONS" and
+                    int(round(float(ex_pos.get("strike_price") or 0))) == strike_int and
+                    (ex_pos.get("option_type") or "").upper() == opt_type and
+                    ex_pos.get("net_quantity", 0) != 0):
+                    pos_key = ex_key
+                    break
+
         # Retrieve or initialize position
         pos = self.positions.get(pos_key, {
             "symbol": sym,
@@ -219,11 +231,15 @@ class PaperTradingEngine:
             "average_buy_price": 0.0,
             "current_market_price": exec_price,
             "underlying_price": current_market_price,
-            "strike_price": getattr(order_req, "strike_price", None),
+            "strike_price": float(strike_int) if inst_type == "OPTIONS" else getattr(order_req, "strike_price", None),
             "option_type": getattr(order_req, "option_type", None),
+            "expiry_date": order_req.expiry_date,
             "unrealized_pnl": 0.0,
             "realized_pnl": 0.0
         })
+
+        if order_req.expiry_date and not pos.get("expiry_date"):
+            pos["expiry_date"] = order_req.expiry_date
 
         effective_qty = order_req.quantity if inst_type == "EQUITY" else (order_req.quantity * lot_size)
 

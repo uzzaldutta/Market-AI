@@ -57,7 +57,8 @@ def test_direct_options_paper_order_execution():
     assert res.option_type == "CE"
 
     # Verify positions in paper engine
-    pos_key = f"SENSEX_OPT_{atm_strike['strike_price']}_CE_{sensex_chain['selected_expiry']}"
+    strike_int = int(round(float(atm_strike['strike_price'])))
+    pos_key = f"SENSEX_OPT_{strike_int}_CE_{str(sensex_chain['selected_expiry']).upper().strip()}"
     assert pos_key in paper_engine.positions
     pos = paper_engine.positions[pos_key]
     assert pos["net_quantity"] >= 10

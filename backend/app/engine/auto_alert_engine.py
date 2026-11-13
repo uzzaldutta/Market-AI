@@ -31,15 +31,15 @@ class AutoAlertEngine:
 
         sample_alerts = [
             AutoAlertItem(
-                alert_id="ALT-NIFTY-24500CE",
-                headline="🟢 BUY NIFTY 24,500 CALL (Budget Friendly)",
+                alert_id="ALT-NIFTY-25400CE",
+                headline="🟢 BUY NIFTY 25,400 CALL (Budget Friendly)",
                 symbol="NIFTY50",
                 exchange="NSE",
                 asset_name="NIFTY 50 Index Option",
-                contract_display="NIFTY 24500 CE",
+                contract_display="NIFTY 25400 CE",
                 instrument_type="INDEX_OPTION",
                 option_type="CE",
-                strike_price=24500.0,
+                strike_price=25400.0,
                 expiry_date="29-OCT-2026",
                 action="BUY",
                 budget_tier="UNDER_5K",
@@ -59,7 +59,7 @@ class AutoAlertEngine:
                 target_2_profit_inr=1950.0,
                 risk_reward_ratio=2.44,
                 win_probability_pct=86.5,
-                plain_english_reason="Heavy institutional buying detected above 24,460 support with 2.6x normal volume. Quick upward momentum breakout expected.",
+                plain_english_reason="Heavy institutional buying detected above 25,200 support with 2.6x normal volume. Quick upward momentum breakout expected.",
                 status="IN_BUY_ZONE",
                 time_horizon="INTRADAY",
                 created_at=now.isoformat()
