@@ -1,8 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AutoAlertItem, AutoAlertsStatsResponse } from '../types/market';
-import { fetchLiveAutoAlerts, fetchAutoAlertsStats, executeAutoAlertInPaper } from '../lib/api';
+import { AutoAlertItem, AutoAlertsStatsResponse, PaperPosition } from '../types/market';
+import { 
+  fetchLiveAutoAlerts, fetchAutoAlertsStats, executeAutoAlertInPaper, 
+  fetchPaperAccount, placePaperOrder 
+} from '../lib/api';
 import { PriceFlash } from './common/PriceFlash';
 import { 
   Zap, Bell, CheckCircle2, ShieldAlert, ArrowUpRight, TrendingUp,
@@ -24,17 +27,23 @@ export const LiveTradeAlertsView: React.FC<LiveTradeAlertsViewProps> = ({
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [isQuantMode, setIsQuantMode] = useState<boolean>(false);
   const [executingId, setExecutingId] = useState<string | null>(null);
+  const [closingId, setClosingId] = useState<string | null>(null);
+  const [openPositions, setOpenPositions] = useState<PaperPosition[]>([]);
   const [executedMap, setExecutedMap] = useState<Record<string, boolean>>({});
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
-      const [alertsRes, statsRes] = await Promise.all([
+      const [alertsRes, statsRes, paperRes] = await Promise.all([
         fetchLiveAutoAlerts(budgetFilter, categoryFilter),
-        fetchAutoAlertsStats()
+        fetchAutoAlertsStats(),
+        fetchPaperAccount().catch(() => null)
       ]);
       setAlerts(alertsRes.active_alerts || []);
       setStats(statsRes);
+      if (paperRes?.positions) {
+        setOpenPositions(paperRes.positions);
+      }
     } catch (e) {
       console.error('Failed to load auto alerts:', e);
     } finally {
@@ -44,7 +53,7 @@ export const LiveTradeAlertsView: React.FC<LiveTradeAlertsViewProps> = ({
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 8000);
+    const interval = setInterval(loadData, 6000);
     return () => clearInterval(interval);
   }, [budgetFilter, categoryFilter]);
 
@@ -55,10 +64,40 @@ export const LiveTradeAlertsView: React.FC<LiveTradeAlertsViewProps> = ({
       const res = await executeAutoAlertInPaper(alert.alert_id, alert.recommended_lots || 1);
       setExecutedMap(prev => ({ ...prev, [alert.alert_id]: true }));
       setFeedbackMessage(res.message || 'Trade Authorized in Paper Account!');
+      loadData();
     } catch (e: any) {
       setFeedbackMessage(e.message || 'Execution failed');
     } finally {
       setExecutingId(null);
+    }
+  };
+
+  const handleClosePosition = async (pos: PaperPosition, alertId: string) => {
+    setClosingId(alertId);
+    setFeedbackMessage(null);
+    try {
+      const exitSide = pos.net_quantity > 0 ? 'SELL' : 'BUY';
+      const absQty = Math.abs(pos.net_quantity);
+      const unitsInLots = (pos.lot_size && pos.lot_size > 1) ? Math.round(absQty / pos.lot_size) : absQty;
+      await placePaperOrder({
+        symbol: pos.symbol,
+        side: exitSide,
+        order_type: 'MARKET',
+        quantity: unitsInLots,
+        product_type: pos.product_type,
+        instrument_type: pos.instrument_type || 'EQUITY',
+        strike_price: pos.strike_price,
+        option_type: pos.option_type,
+        expiry_date: pos.expiry_date,
+        lot_size: pos.lot_size || 1,
+        client_order_id: `CLOSE-${alertId}-${Date.now()}`
+      });
+      setFeedbackMessage(`Position closed successfully! Realized profit booked into your virtual portfolio.`);
+      loadData();
+    } catch (e: any) {
+      setFeedbackMessage(e.message || 'Failed to close position');
+    } finally {
+      setClosingId(null);
     }
   };
 
@@ -252,13 +291,37 @@ export const LiveTradeAlertsView: React.FC<LiveTradeAlertsViewProps> = ({
           alerts.map(alt => {
             const isExecuted = executedMap[alt.alert_id];
             const isIndexOpt = alt.instrument_type === 'INDEX_OPTION';
+            
+            // Check if user currently has an open paper trading position for this alert
+            const activePosition = openPositions.find(p => {
+              if (!p.net_quantity || Math.abs(p.net_quantity) <= 0) return false;
+              if (alt.instrument_type === 'INDEX_OPTION' || alt.instrument_type === 'OPTIONS') {
+                const strikeMatch = p.strike_price && alt.strike_price && Math.round(Number(p.strike_price)) === Math.round(Number(alt.strike_price));
+                const optTypeMatch = p.option_type && alt.option_type && p.option_type.toUpperCase() === alt.option_type.toUpperCase();
+                const symMatch = p.symbol && alt.symbol && (
+                  p.symbol.toUpperCase() === alt.symbol.toUpperCase() ||
+                  p.symbol.toUpperCase().includes(alt.symbol.toUpperCase()) ||
+                  alt.symbol.toUpperCase().includes(p.symbol.toUpperCase())
+                );
+                return symMatch && strikeMatch && optTypeMatch;
+              } else {
+                return p.symbol && alt.symbol && p.symbol.toUpperCase() === alt.symbol.toUpperCase();
+              }
+            });
+
             return (
               <div
                 key={alt.alert_id}
-                className="rounded-2xl bg-[#090e1a]/95 border-2 border-slate-800 hover:border-emerald-500/50 transition-all p-5 shadow-xl flex flex-col justify-between space-y-4 font-sans relative overflow-hidden group"
+                className={`rounded-2xl transition-all p-5 shadow-xl flex flex-col justify-between space-y-4 font-sans relative overflow-hidden group ${
+                  activePosition
+                    ? 'bg-[#091322] border-2 border-emerald-500 shadow-emerald-950/50 ring-1 ring-emerald-500/30'
+                    : 'bg-[#090e1a]/95 border-2 border-slate-800 hover:border-emerald-500/50'
+                }`}
               >
                 {/* Background Accent Gradient */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-emerald-500/10 transition-all" />
+                <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-2xl pointer-events-none transition-all ${
+                  activePosition ? 'bg-emerald-500/20' : 'bg-emerald-500/5 group-hover:bg-emerald-500/10'
+                }`} />
 
                 {/* Top Badge & Time Window */}
                 <div className="space-y-2">
@@ -352,25 +415,108 @@ export const LiveTradeAlertsView: React.FC<LiveTradeAlertsViewProps> = ({
                   </div>
                 )}
 
-                {/* 1-Click Action Button */}
-                <button
-                  type="button"
-                  onClick={() => handleExecute(alt)}
-                  disabled={executingId === alt.alert_id || isExecuted}
-                  className={`w-full py-2.5 px-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 ${
-                    isExecuted
-                      ? 'bg-slate-800 text-emerald-400 border border-emerald-500/40 cursor-default'
-                      : 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 hover:from-emerald-400 hover:to-teal-300 text-black shadow-emerald-950/40'
-                  }`}
-                >
-                  {isExecuted ? (
-                    <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Position Open in Virtual Ledger</span>
-                  ) : executingId === alt.alert_id ? (
-                    <span>Authorizing Order in Virtual Ledger...</span>
-                  ) : (
-                    <span className="flex items-center gap-1.5"><Zap className="w-4 h-4" /> ⚡ Take This Trade in Paper Account (1-Click)</span>
-                  )}
-                </button>
+                {/* Live Running Position Widget or 1-Click Action */}
+                {activePosition ? (
+                  <div className="p-3.5 rounded-xl bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-950 border border-emerald-500/40 space-y-3 font-mono shadow-inner">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-bold">
+                        <span className="relative flex h-2.5 w-2.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                        </span>
+                        <span>POSITION LIVE IN VIRTUAL LEDGER</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400">
+                        {Math.abs(activePosition.net_quantity)} units {alt.lot_size ? `(${Math.round(Math.abs(activePosition.net_quantity) / alt.lot_size)} Lot)` : ''}
+                      </span>
+                    </div>
+
+                    {/* Live PnL & Current Price */}
+                    <div className="flex items-baseline justify-between pt-1 border-t border-slate-800">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block uppercase font-bold">Current MTM P&amp;L</span>
+                        <div className={`text-base font-black flex items-center gap-1 ${
+                          activePosition.unrealized_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                        }`}>
+                          <span>
+                            {activePosition.unrealized_pnl >= 0 ? '+' : ''}₹{activePosition.unrealized_pnl.toFixed(2)}
+                          </span>
+                          <span className="text-xs font-normal">
+                            ({activePosition.pnl_percentage >= 0 ? '+' : ''}{activePosition.pnl_percentage.toFixed(1)}%)
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-400 block uppercase font-bold">Live LTP</span>
+                        <span className="text-sm font-bold text-white flex items-center justify-end">
+                          ₹<PriceFlash value={activePosition.current_market_price} />
+                        </span>
+                        <span className="text-[9px] text-slate-500">Bought @ ₹{activePosition.average_buy_price.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    {/* Target 1 Progress Bar */}
+                    {(() => {
+                      const entryP = activePosition.average_buy_price || alt.entry_price_min;
+                      const targetP = alt.target_1_price;
+                      const currP = activePosition.current_market_price || alt.current_price;
+                      const dist = targetP - entryP;
+                      const progress = dist > 0 ? Math.min(100, Math.max(0, Math.round(((currP - entryP) / dist) * 100))) : 0;
+                      return (
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[10px] text-slate-400">
+                            <span>Target 1 Progress (₹{alt.target_1_price})</span>
+                            <span className="text-emerald-300 font-bold">{progress}%</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* 1-Click Square Off / Exit Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleClosePosition(activePosition, alt.alert_id)}
+                      disabled={closingId === alt.alert_id}
+                      className="w-full py-2.5 px-3 rounded-xl font-black text-xs bg-gradient-to-r from-amber-500 via-emerald-500 to-teal-500 hover:from-amber-400 hover:to-emerald-400 text-black shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2 transition-all active:scale-95"
+                    >
+                      {closingId === alt.alert_id ? (
+                        <span className="flex items-center gap-2">
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Closing &amp; Realizing Profit...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          💰 1-Click Book Profit &amp; Exit Position
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleExecute(alt)}
+                    disabled={executingId === alt.alert_id || isExecuted}
+                    className={`w-full py-2.5 px-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 ${
+                      isExecuted
+                        ? 'bg-slate-800 text-emerald-400 border border-emerald-500/40 cursor-default'
+                        : 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 hover:from-emerald-400 hover:to-teal-300 text-black shadow-emerald-950/40'
+                    }`}
+                  >
+                    {isExecuted ? (
+                      <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Order Placed</span>
+                    ) : executingId === alt.alert_id ? (
+                      <span className="flex items-center gap-2"><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Authorizing Order in Virtual Ledger...</span>
+                    ) : (
+                      <span className="flex items-center gap-1.5"><Zap className="w-4 h-4" /> ⚡ Take This Trade in Paper Account (1-Click)</span>
+                    )}
+                  </button>
+                )}
               </div>
             );
           })
