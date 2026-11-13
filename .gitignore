@@ -9,3 +9,6 @@ __pycache__/
 *.db
 .env
 .env*.local
+
+cloudflared.exe
+*.exe

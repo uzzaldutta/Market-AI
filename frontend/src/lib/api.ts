@@ -23,7 +23,7 @@ import {
   UserSummaryItem
 } from '../types/market';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? '/api/v1' : 'http://localhost:8000/api/v1');
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://market-ai-pf2c.onrender.com/api/v1';
 
 export async function fetchMarketOverview(): Promise<MarketOverviewData> {
   const res = await fetch(`${API_BASE}/overview`, { cache: 'no-store' });
