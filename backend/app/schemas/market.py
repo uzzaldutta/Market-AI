@@ -148,6 +148,7 @@ class OptionChainResponse(BaseModel):
     pcr: float
     max_pain: float
     lot_size: int
+    exchange: Optional[str] = "NSE"
     strikes: List[OptionStrikeData]
 
 class StrategyPayoffPoint(BaseModel):

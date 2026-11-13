@@ -168,7 +168,10 @@ export default function TerminalHome() {
             )}
 
             {activeTab === 'options' && (
-              <OptionsAnalyticsView symbol={selectedSymbol} />
+              <OptionsAnalyticsView
+                symbol={selectedSymbol}
+                onNavigateToPaperTrading={() => setActiveTab('paper')}
+              />
             )}
 
             {activeTab === 'predictions' && (

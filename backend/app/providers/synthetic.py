@@ -14,18 +14,22 @@ from ..engine.greeks import OptionsMath
 class SyntheticFixtureProvider(BaseMarketDataProvider):
     # Benchmark base prices
     BASE_INSTRUMENTS = {
-        "NIFTY50": {"name": "NIFTY 50", "price": 24850.0, "type": "INDEX", "sector": "Benchmark"},
-        "BANKNIFTY": {"name": "NIFTY BANK", "price": 51200.0, "type": "INDEX", "sector": "Banking"},
-        "RELIANCE": {"name": "Reliance Industries Ltd", "price": 2980.0, "type": "EQUITY", "sector": "Energy"},
-        "TCS": {"name": "Tata Consultancy Services", "price": 4120.0, "type": "EQUITY", "sector": "IT"},
-        "HDFCBANK": {"name": "HDFC Bank Ltd", "price": 1640.0, "type": "EQUITY", "sector": "Banking"},
-        "INFY": {"name": "Infosys Ltd", "price": 1890.0, "type": "EQUITY", "sector": "IT"},
-        "ICICIBANK": {"name": "ICICI Bank Ltd", "price": 1245.0, "type": "EQUITY", "sector": "Banking"},
-        "SBIN": {"name": "State Bank of India", "price": 820.0, "type": "EQUITY", "sector": "Banking"},
-        "BHARTIARTL": {"name": "Bharti Airtel Ltd", "price": 1680.0, "type": "EQUITY", "sector": "Telecom"},
-        "ITC": {"name": "ITC Ltd", "price": 490.0, "type": "EQUITY", "sector": "FMCG"},
-        "LT": {"name": "Larsen & Toubro Ltd", "price": 3550.0, "type": "EQUITY", "sector": "Infrastructure"},
-        "TATAMOTORS": {"name": "Tata Motors Ltd", "price": 930.0, "type": "EQUITY", "sector": "Automobile"}
+        "NIFTY50": {"name": "NIFTY 50", "price": 24850.0, "type": "INDEX", "sector": "Benchmark", "exchange": "NSE", "lot_size": 50},
+        "BANKNIFTY": {"name": "NIFTY BANK", "price": 51200.0, "type": "INDEX", "sector": "Banking", "exchange": "NSE", "lot_size": 15},
+        "FINNIFTY": {"name": "NIFTY FINANCIAL SERVICES", "price": 23850.0, "type": "INDEX", "sector": "Financials", "exchange": "NSE", "lot_size": 25},
+        "MIDCPNIFTY": {"name": "NIFTY MIDCAP SELECT", "price": 12850.0, "type": "INDEX", "sector": "Midcap", "exchange": "NSE", "lot_size": 50},
+        "SENSEX": {"name": "BSE SENSEX", "price": 79450.0, "type": "INDEX", "sector": "Benchmark", "exchange": "BSE", "lot_size": 10},
+        "BANKEX": {"name": "BSE BANKEX", "price": 58200.0, "type": "INDEX", "sector": "Banking", "exchange": "BSE", "lot_size": 15},
+        "RELIANCE": {"name": "Reliance Industries Ltd", "price": 2980.0, "type": "EQUITY", "sector": "Energy", "exchange": "NSE", "lot_size": 250},
+        "TCS": {"name": "Tata Consultancy Services", "price": 4120.0, "type": "EQUITY", "sector": "IT", "exchange": "NSE", "lot_size": 175},
+        "HDFCBANK": {"name": "HDFC Bank Ltd", "price": 1640.0, "type": "EQUITY", "sector": "Banking", "exchange": "NSE", "lot_size": 550},
+        "INFY": {"name": "Infosys Ltd", "price": 1890.0, "type": "EQUITY", "sector": "IT", "exchange": "NSE", "lot_size": 400},
+        "ICICIBANK": {"name": "ICICI Bank Ltd", "price": 1245.0, "type": "EQUITY", "sector": "Banking", "exchange": "NSE", "lot_size": 700},
+        "SBIN": {"name": "State Bank of India", "price": 820.0, "type": "EQUITY", "sector": "Banking", "exchange": "NSE", "lot_size": 750},
+        "BHARTIARTL": {"name": "Bharti Airtel Ltd", "price": 1680.0, "type": "EQUITY", "sector": "Telecom", "exchange": "NSE", "lot_size": 475},
+        "ITC": {"name": "ITC Ltd", "price": 490.0, "type": "EQUITY", "sector": "FMCG", "exchange": "NSE", "lot_size": 1600},
+        "LT": {"name": "Larsen & Toubro Ltd", "price": 3550.0, "type": "EQUITY", "sector": "Infrastructure", "exchange": "NSE", "lot_size": 150},
+        "TATAMOTORS": {"name": "Tata Motors Ltd", "price": 930.0, "type": "EQUITY", "sector": "Automobile", "exchange": "NSE", "lot_size": 575}
     }
 
     def __init__(self):
@@ -184,23 +188,55 @@ class SyntheticFixtureProvider(BaseMarketDataProvider):
         return candles
 
     def get_option_chain(self, symbol: str, expiry: Optional[str] = None) -> Dict[str, Any]:
-        clean_sym = symbol.upper().replace(".NS", "").replace("^", "")
+        clean_sym = symbol.upper().replace(".NS", "").replace(".BO", "").replace("^", "")
         quote = self.get_quote(clean_sym)
         spot = quote["ltp"]
         
-        # Expiry schedule (upcoming Thursdays in IST)
+        exchange = "BSE" if ("SENSEX" in clean_sym or "BANKEX" in clean_sym) else "NSE"
+        
+        # Expiry schedule (BSE SENSEX: Friday, BSE BANKEX/MIDCP: Monday, FINNIFTY: Tuesday, NIFTY/BANKNIFTY: Thursday)
         now = datetime.now(self.ist_tz)
-        days_ahead = (3 - now.weekday()) % 7 # 3 = Thursday
+        if "SENSEX" in clean_sym:
+            target_weekday = 4 # Friday (BSE SENSEX weekly expiry)
+        elif "BANKEX" in clean_sym or "MIDCP" in clean_sym:
+            target_weekday = 0 # Monday (BSE BANKEX & NSE MIDCP)
+        elif "FINNIFTY" in clean_sym:
+            target_weekday = 1 # Tuesday (NSE FINNIFTY)
+        else:
+            target_weekday = 3 # Thursday (NSE standard)
+
+        days_ahead = (target_weekday - now.weekday()) % 7
         if days_ahead <= 0:
             days_ahead += 7
-        next_thursday = now + timedelta(days=days_ahead)
-        second_thursday = next_thursday + timedelta(days=7)
+        next_exp = now + timedelta(days=days_ahead)
+        second_exp = next_exp + timedelta(days=7)
         
-        expiries = [next_thursday.strftime("%Y-%m-%d"), second_thursday.strftime("%Y-%m-%d")]
+        expiries = [next_exp.strftime("%Y-%m-%d"), second_exp.strftime("%Y-%m-%d")]
         selected_exp = expiry if (expiry and expiry in expiries) else expiries[0]
         
-        # Determine strike interval (NIFTY: 50, BANKNIFTY: 100, Stocks: ~20-50)
-        step = 50.0 if "NIFTY" in clean_sym else (100.0 if "BANK" in clean_sym else 20.0)
+        # Determine strike interval and lot size
+        if "SENSEX" in clean_sym:
+            step = 100.0
+            lot_size = 10
+        elif "BANKEX" in clean_sym:
+            step = 100.0
+            lot_size = 15
+        elif "BANKNIFTY" in clean_sym:
+            step = 100.0
+            lot_size = 15
+        elif "FINNIFTY" in clean_sym:
+            step = 50.0
+            lot_size = 25
+        elif "MIDCP" in clean_sym:
+            step = 25.0
+            lot_size = 50
+        elif "NIFTY" in clean_sym:
+            step = 50.0
+            lot_size = 50
+        else:
+            step = 20.0
+            lot_size = self.BASE_INSTRUMENTS.get(clean_sym, {}).get("lot_size", 250)
+            
         atm_strike = round(spot / step) * step
         
         # 7 strikes below, ATM, 7 strikes above
@@ -254,7 +290,6 @@ class SyntheticFixtureProvider(BaseMarketDataProvider):
             
         pcr = OptionsMath.calculate_pcr(call_ois, put_ois)
         max_pain = OptionsMath.calculate_max_pain(strikes, call_ois, put_ois)
-        lot_size = 50 if clean_sym == "NIFTY50" else (15 if clean_sym == "BANKNIFTY" else 250)
         
         return {
             "underlying_symbol": clean_sym,
@@ -264,6 +299,7 @@ class SyntheticFixtureProvider(BaseMarketDataProvider):
             "pcr": pcr,
             "max_pain": max_pain,
             "lot_size": lot_size,
+            "exchange": exchange,
             "strikes": strike_rows
         }
 

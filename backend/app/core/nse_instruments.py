@@ -178,20 +178,26 @@ def search_nse_instruments(query: str, limit: int = 20) -> List[Dict[str, Any]]:
     return combined[:limit]
 
 def get_instrument_lot_size(symbol: str) -> int:
-    """Returns official lot size for F&O contracts or sensible standard defaults."""
-    clean = symbol.upper().replace(".NS", "").replace("^", "").strip()
+    """Returns official lot size for F&O contracts across NSE and BSE or sensible standard defaults."""
+    clean = symbol.upper().replace(".NS", "").replace(".BO", "").replace("^", "").strip()
     if clean in NSE_SYMBOL_INDEX:
         return NSE_SYMBOL_INDEX[clean].get("lot_size", 250)
     
-    # Common index defaults
+    # BSE Index F&O lot sizes
+    if "SENSEX" in clean:
+        return 10
+    if "BANKEX" in clean:
+        return 15
+
+    # NSE Index F&O lot sizes
     if "BANKNIFTY" in clean:
         return 15
-    if "NIFTY" in clean:
-        return 25
     if "FINNIFTY" in clean:
-        return 40
-    if "MIDCPNIFTY" in clean:
-        return 75
+        return 25
+    if "MIDCP" in clean:
+        return 50
+    if "NIFTY" in clean:
+        return 50
     
     # Generic F&O equity default
     return 250

@@ -124,6 +124,7 @@ export interface OptionChainData {
   pcr: number;
   max_pain: number;
   lot_size: number;
+  exchange?: string;
   strikes: OptionStrike[];
 }
 
