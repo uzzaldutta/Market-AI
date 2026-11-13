@@ -304,6 +304,23 @@ export async function optimizeStrategy(req: any): Promise<any> {
   return res.json();
 }
 
+export async function fetchPreTradeCheck(req: any): Promise<any> {
+  const res = await fetch(`${API_BASE}/paper/pretrade-check`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+  if (!res.ok) throw new Error('Failed to run pre-trade validation check');
+  return res.json();
+}
+
+export async function fetchDailyRecommendations(limit = 20): Promise<any> {
+  const res = await fetch(`${API_BASE}/recommendations/daily?limit=${limit}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch daily recommendations');
+  return res.json();
+}
+
+
 
 
 

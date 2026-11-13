@@ -21,7 +21,8 @@ from ..schemas.market import (
     StockDuelResponse, BlockDealsResponse,
     AlertsFeedResponse, WebhookTestRequest, WebhookTestResponse,
     ResearchDossierResponse, OptionStrategyRequest, OptionStrategyPayoffResponse,
-    OrderBookDepthResponse, StrategyOptimizationRequest, StrategyOptimizationResponse
+    OrderBookDepthResponse, StrategyOptimizationRequest, StrategyOptimizationResponse,
+    PreTradeCheckRequest, PreTradeCheckResponse
 )
 from ..providers.manager import get_market_data_provider
 from ..core.nse_instruments import NSE_SYMBOL_INDEX, search_nse_instruments
@@ -51,6 +52,7 @@ from ..engine.dossier_engine import dossier_engine
 from ..engine.strategy_builder import strategy_builder_engine
 from ..engine.orderbook_engine import orderbook_depth_engine
 from ..engine.optimizer_engine import strategy_optimizer_engine
+from ..engine.pretrade_engine import pretrade_engine
 
 router = APIRouter()
 
@@ -429,6 +431,11 @@ def get_market_depth_and_icebergs(symbol: str):
 def optimize_strategy_hyperparameters(req: StrategyOptimizationRequest):
     """Autonomous parameter grid search finding the optimal Stop-Loss % and Risk-Reward ratio on historical data."""
     return strategy_optimizer_engine.optimize_strategy(req)
+
+@router.post("/paper/pretrade-check", response_model=PreTradeCheckResponse)
+def run_pretrade_validation_gate(req: PreTradeCheckRequest):
+    """Institutional pre-flight risk gate verifying 1% capital-at-risk, 1:2 R:R ratio, confluence, and exchange friction."""
+    return pretrade_engine.validate_trade(req)
 
 @router.get("/health")
 def get_health_status():

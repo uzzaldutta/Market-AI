@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { fetchPaperAccount, placePaperOrder, fetchQuote, resetPaperAccount } from '../lib/api';
-import { PaperAccount, PaperPosition, PaperOrder } from '../types/market';
+import React, { useState, useEffect, useRef } from 'react';
+import { fetchPaperAccount, placePaperOrder, fetchQuote, resetPaperAccount, fetchDailyRecommendations } from '../lib/api';
+import { PaperAccount, PaperPosition, PaperOrder, PreTradeCheckRequest } from '../types/market';
 import { useFavourites } from '../context/FavouritesContext';
 import { PriceFlash } from './common/PriceFlash';
+import { PreTradeChecklistModal } from './common/PreTradeChecklistModal';
 import { 
   Wallet, ShieldCheck, ArrowUpRight, ArrowDownRight, AlertTriangle, 
-  Send, RefreshCw, Star, Layers, Activity, History, CheckCircle2, XCircle
+  Send, RefreshCw, Star, Layers, Activity, History, CheckCircle2, XCircle,
+  Sparkles, Target, Sliders, Zap, ChevronRight
 } from 'lucide-react';
 
 type InstrumentCategory = 'EQUITY' | 'FUTURES' | 'OPTIONS';
@@ -47,6 +49,17 @@ export const PaperTradingView: React.FC = () => {
   const [expiryDate, setExpiryDate] = useState<string>('29-OCT-2026');
   const [customPrice, setCustomPrice] = useState<number | ''>('');
   
+  // Risk & Invalidation Exit Plan
+  const [stopLossPrice, setStopLossPrice] = useState<number>(0);
+  const [targetPrice, setTargetPrice] = useState<number>(0);
+  const [isPreTradeModalOpen, setIsPreTradeModalOpen] = useState<boolean>(false);
+  const [preTradePayload, setPreTradePayload] = useState<PreTradeCheckRequest | null>(null);
+
+  // Recommendations Drawer State
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [loadingRecs, setLoadingRecs] = useState<boolean>(true);
+  const orderFormRef = useRef<HTMLDivElement>(null);
+
   const [livePrice, setLivePrice] = useState<number>(3000);
   const [loading, setLoading] = useState<boolean>(false);
   const [resetting, setResetting] = useState<boolean>(false);
@@ -69,6 +82,18 @@ export const PaperTradingView: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch High-Conviction Recommendations on Mount
+  useEffect(() => {
+    fetchDailyRecommendations(12)
+      .then((data) => {
+        setRecommendations(data?.recommendations || []);
+      })
+      .catch((err) => {
+        console.error('Failed to load recommendations for paper trading:', err);
+      })
+      .finally(() => setLoadingRecs(false));
+  }, []);
+
   // Update underlying spot and auto-populate ATM strike
   useEffect(() => {
     fetchQuote(symbol)
@@ -78,9 +103,11 @@ export const PaperTradingView: React.FC = () => {
         const step = symbol.includes('NIFTY') ? 50 : 20;
         const atm = Math.round(q.ltp / step) * step;
         setStrikePrice(atm);
+        setStopLossPrice(Math.round(q.ltp * (side === 'BUY' ? 0.98 : 1.02) * 10) / 10);
+        setTargetPrice(Math.round(q.ltp * (side === 'BUY' ? 1.05 : 0.95) * 10) / 10);
       })
       .catch(() => {});
-  }, [symbol]);
+  }, [symbol, side]);
 
   const lotSize = category === 'EQUITY' ? 1 : (LOT_SIZES[symbol] || 250);
   const totalUnits = category === 'EQUITY' ? equityQty : (lots * lotSize);
@@ -114,20 +141,55 @@ export const PaperTradingView: React.FC = () => {
     return estimatedOrderValue * 0.20;
   })();
 
-  const handlePlaceOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePreFillFromRecommendation = (rec: any) => {
+    const isOpt = rec.asset_class === 'INDEX_OPTION' || rec.asset_class === 'STOCK_OPTION';
+    const isFut = rec.asset_class === 'FUTURES';
+    setCategory(isOpt ? 'OPTIONS' : isFut ? 'FUTURES' : 'EQUITY');
+    setSymbol(rec.symbol);
+    setSide(rec.direction === 'LONG' || rec.direction === 'BUY' ? 'BUY' : 'SELL');
+    const p = rec.entry_price || rec.ltp || livePrice;
+    setCustomPrice(p);
+    if (rec.stop_loss) setStopLossPrice(rec.stop_loss);
+    if (rec.target_1 || rec.target_price) setTargetPrice(rec.target_1 || rec.target_price);
+    if (orderFormRef.current) {
+      orderFormRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleOpenPreTradeCheck = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const entryP = typeof customPrice === 'number' && customPrice > 0 ? customPrice : livePrice;
+    const req: PreTradeCheckRequest = {
+      symbol,
+      side,
+      quantity: category === 'EQUITY' ? equityQty : (lots * lotSize),
+      entry_price: entryP,
+      stop_loss: stopLossPrice > 0 ? stopLossPrice : (side === 'BUY' ? entryP * 0.98 : entryP * 1.02),
+      target_price: targetPrice > 0 ? targetPrice : (side === 'BUY' ? entryP * 1.05 : entryP * 0.95),
+      account_equity: account?.total_equity || 1000000.0,
+      instrument_type: category,
+      product_type: category === 'EQUITY' ? (productType as any) : 'NRML'
+    };
+    setPreTradePayload(req);
+    setIsPreTradeModalOpen(true);
+  };
+
+  const executeValidatedOrder = async (adjustedQty?: number) => {
     setLoading(true);
     setMessage(null);
+    const finalQty = adjustedQty !== undefined 
+      ? (category === 'EQUITY' ? adjustedQty : Math.max(1, Math.round(adjustedQty / lotSize)))
+      : (category === 'EQUITY' ? equityQty : lots);
 
     const payload: any = {
       symbol,
       side,
       order_type: orderType,
-      quantity: category === 'EQUITY' ? equityQty : lots,
+      quantity: finalQty,
       product_type: category === 'EQUITY' ? productType : 'NRML',
       instrument_type: category,
       lot_size: lotSize,
-      client_order_id: `WEB-${category}-${Date.now()}`
+      client_order_id: `WEB-INST-${Date.now()}`
     };
 
     if (category === 'OPTIONS') {
@@ -148,7 +210,7 @@ export const PaperTradingView: React.FC = () => {
         setMessage({ text: `Order Rejected: ${res.rejection_reason}`, error: true });
       } else {
         setMessage({ 
-          text: `Simulated order ${res.order_id} filled! ${res.side} ${res.quantity} ${category === 'EQUITY' ? 'shares' : 'lots'} @ ₹${res.price.toFixed(2)}` 
+          text: `Institutional Order Authorized! Filled ${res.side} ${res.quantity} ${category === 'EQUITY' ? 'shares' : 'lots'} of ${res.symbol} @ ₹${res.price.toFixed(2)}` 
         });
         loadAccount();
       }
@@ -157,6 +219,11 @@ export const PaperTradingView: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePlaceOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    handleOpenPreTradeCheck(e);
   };
 
   const handleSquareOff = async (pos: PaperPosition) => {
@@ -266,8 +333,94 @@ export const PaperTradingView: React.FC = () => {
         </div>
       </div>
 
+      {/* Embedded High-Conviction AI Recommendations Shelf */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#0a0f1e] via-[#0d162d] to-[#0a0f1e] border border-cyan-500/30 shadow-xl space-y-3">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-cyan-500/20 text-cyan-400">
+              <Sparkles className="w-4 h-4" />
+            </span>
+            <div>
+              <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                Active High-Conviction AI Recommendations
+                <span className="text-[10px] px-2 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 font-mono font-bold">
+                  READY TO PAPER TRADE
+                </span>
+              </h2>
+              <p className="text-[11px] text-slate-400 font-sans">
+                Algorithmic setups with pre-calculated entry zones, stop losses, and targets. Click <strong>Pre-Fill &amp; Arm</strong> to load directly into the order ticket.
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-mono text-slate-500 hidden sm:inline">
+            {recommendations.length} Institutional Setups Loaded
+          </span>
+        </div>
+
+        {/* Horizontal Scrolling Cards */}
+        <div className="flex items-center space-x-3 overflow-x-auto no-scrollbar py-1">
+          {recommendations.slice(0, 8).map((rec: any, idx: number) => {
+            const isBuy = rec.direction === 'BUY' || rec.direction === 'LONG';
+            return (
+              <div
+                key={idx}
+                className="w-72 shrink-0 p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-cyan-500/40 transition-all font-mono shadow-md flex flex-col justify-between space-y-2.5"
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-white text-sm">{rec.symbol}</span>
+                      <span
+                        className={`text-[9px] px-1.5 py-0.2 rounded font-extrabold ${
+                          isBuy ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                        }`}
+                      >
+                        {rec.direction}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-sans truncate block max-w-[160px]">
+                      {rec.strategy_name || 'Quantitative Momentum Breakout'}
+                    </span>
+                  </div>
+
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 font-bold border border-cyan-500/20">
+                    {rec.confidence_score ? `${rec.confidence_score}% Conf.` : '92% Conf.'}
+                  </span>
+                </div>
+
+                {/* Price, Target & SL Grid */}
+                <div className="grid grid-cols-3 gap-1.5 text-[10px] bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
+                  <div>
+                    <span className="text-slate-500 block">ENTRY</span>
+                    <span className="font-bold text-white">₹{(rec.entry_price || rec.ltp || 0).toFixed(1)}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">STOP-LOSS</span>
+                    <span className="font-bold text-rose-400">₹{(rec.stop_loss || 0).toFixed(1)}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-slate-500 block">TARGET 1</span>
+                    <span className="font-bold text-emerald-400">₹{(rec.target_1 || rec.target_price || 0).toFixed(1)}</span>
+                  </div>
+                </div>
+
+                {/* Pre-fill Action Button */}
+                <button
+                  type="button"
+                  onClick={() => handlePreFillFromRecommendation(rec)}
+                  className="w-full py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow transition-all active:scale-95"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  Pre-Fill &amp; Arm Order
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* 3. Order Entry & Risk Management Panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div ref={orderFormRef} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Order Form */}
         <div className="p-5 rounded-xl bg-terminal-surface border border-terminal-border font-mono text-xs shadow-sm">
           {/* Instrument Category Selector */}
@@ -520,6 +673,33 @@ export const PaperTradingView: React.FC = () => {
               )}
             </div>
 
+            {/* Invalidation Stop-Loss & Target Price Planning */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-gray-400 block mb-1">STOP-LOSS (₹)</label>
+                <input
+                  type="number"
+                  step="0.05"
+                  value={stopLossPrice}
+                  onChange={(e) => setStopLossPrice(parseFloat(e.target.value) || 0)}
+                  placeholder="Exit Stop Loss"
+                  className="w-full bg-terminal-dark border border-slate-700 rounded p-2 text-rose-400 font-bold focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-400 block mb-1">TARGET 1 (₹)</label>
+                <input
+                  type="number"
+                  step="0.05"
+                  value={targetPrice}
+                  onChange={(e) => setTargetPrice(parseFloat(e.target.value) || 0)}
+                  placeholder="Target Price"
+                  className="w-full bg-terminal-dark border border-slate-700 rounded p-2 text-emerald-400 font-bold focus:outline-none"
+                />
+              </div>
+            </div>
+
             {/* Value & Margin Summary Box */}
             <div className="p-3 bg-terminal-dark rounded-lg border border-terminal-border space-y-1.5 text-[11px]">
               <div className="flex justify-between text-gray-400">
@@ -542,15 +722,27 @@ export const PaperTradingView: React.FC = () => {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-2.5 rounded-lg text-white font-bold transition-all shadow-md ${
-                side === 'BUY' ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20' : 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/20'
-              }`}
-            >
-              {loading ? 'Executing Ledger Order...' : `Simulate ${side} ${category} Order`}
-            </button>
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={handleOpenPreTradeCheck}
+                disabled={loading}
+                className="w-full py-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold transition-all shadow-md flex items-center justify-center gap-2 text-xs"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                🛡️ Pre-Trade Risk Gate &amp; Sizing Check
+              </button>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full py-2 rounded-lg text-white font-semibold transition-all text-[11px] ${
+                  side === 'BUY' ? 'bg-emerald-600/80 hover:bg-emerald-500' : 'bg-rose-600/80 hover:bg-rose-500'
+                }`}
+              >
+                {loading ? 'Executing Ledger Order...' : `Direct Submit ${side} ${category} Order`}
+              </button>
+            </div>
           </form>
         </div>
 
@@ -707,6 +899,16 @@ export const PaperTradingView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Institutional Pre-Trade Risk Gate Modal */}
+      {preTradePayload && (
+        <PreTradeChecklistModal
+          isOpen={isPreTradeModalOpen}
+          onClose={() => setIsPreTradeModalOpen(false)}
+          tradeData={preTradePayload}
+          onConfirmOrder={(adjustedQty) => executeValidatedOrder(adjustedQty)}
+        />
+      )}
     </div>
   );
 };

@@ -672,6 +672,57 @@ export interface StrategyOptimizationResponse {
   timestamp: string;
 }
 
+// --- INSTITUTIONAL PRE-TRADE CHECKLIST & RISK GATE SCHEMAS ---
+export interface PreTradeCheckRequest {
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  quantity: number;
+  entry_price: number;
+  stop_loss: number;
+  target_price: number;
+  account_equity?: number;
+  instrument_type?: 'EQUITY' | 'FUTURES' | 'OPTIONS';
+  product_type?: 'CNC' | 'MIS' | 'NRML';
+}
+
+export interface FrictionTaxBreakdown {
+  stt: number;
+  exchange_turnover_fee: number;
+  sebi_charges: number;
+  stamp_duty: number;
+  gst: number;
+  total_taxes_and_charges: number;
+  breakeven_points_needed: number;
+}
+
+export interface PreTradeCheckItem {
+  name: string;
+  status: 'PASS' | 'WARN' | 'FAIL';
+  value_str: string;
+  description: string;
+}
+
+export interface PreTradeCheckResponse {
+  symbol: string;
+  side: string;
+  order_value: number;
+  risk_amount_inr: number;
+  risk_pct_of_equity: number;
+  reward_amount_inr: number;
+  risk_reward_ratio: number;
+  recommended_1pct_quantity: number;
+  recommended_2pct_quantity: number;
+  portfolio_concentration_pct: number;
+  confluence_bias: string;
+  friction: FrictionTaxBreakdown;
+  checks: PreTradeCheckItem[];
+  readiness_score: number;
+  overall_status: 'INSTITUTIONAL_READY' | 'ACCEPTABLE_WITH_CAUTION' | 'BLOCKED_HIGH_RISK';
+  advisory_message: string;
+  timestamp: string;
+}
+
+
 
 
 

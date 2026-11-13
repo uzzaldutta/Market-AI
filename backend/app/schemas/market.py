@@ -847,6 +847,53 @@ class StrategyOptimizationResponse(BaseModel):
     recommendation: str
     timestamp: str
 
+# --- INSTITUTIONAL PRE-TRADE CHECKLIST & RISK GATE SCHEMAS ---
+class PreTradeCheckRequest(BaseModel):
+    symbol: str
+    side: OrderSide # BUY or SELL
+    quantity: int
+    entry_price: float
+    stop_loss: float
+    target_price: float
+    account_equity: float = 1000000.0
+    instrument_type: str = "EQUITY" # "EQUITY", "FUTURES", "OPTIONS"
+    product_type: str = "CNC" # "CNC", "MIS", "NRML"
+
+class FrictionTaxBreakdown(BaseModel):
+    stt: float
+    exchange_turnover_fee: float
+    sebi_charges: float
+    stamp_duty: float
+    gst: float
+    total_taxes_and_charges: float
+    breakeven_points_needed: float
+
+class PreTradeCheckItem(BaseModel):
+    name: str
+    status: str # "PASS", "WARN", "FAIL"
+    value_str: str
+    description: str
+
+class PreTradeCheckResponse(BaseModel):
+    symbol: str
+    side: str
+    order_value: float
+    risk_amount_inr: float
+    risk_pct_of_equity: float
+    reward_amount_inr: float
+    risk_reward_ratio: float
+    recommended_1pct_quantity: int
+    recommended_2pct_quantity: int
+    portfolio_concentration_pct: float
+    confluence_bias: str # "BULLISH_CONFLUENCE", "BEARISH_CONFLUENCE", "NEUTRAL"
+    friction: FrictionTaxBreakdown
+    checks: List[PreTradeCheckItem]
+    readiness_score: int # out of 6
+    overall_status: str # "INSTITUTIONAL_READY", "ACCEPTABLE_WITH_CAUTION", "BLOCKED_HIGH_RISK"
+    advisory_message: str
+    timestamp: str
+
+
 
 
 
