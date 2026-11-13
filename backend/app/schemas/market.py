@@ -294,6 +294,11 @@ class PaperPositionResponse(BaseModel):
     strike_price: Optional[float] = None
     option_type: Optional[str] = None
     expiry_date: Optional[str] = None
+    delta: Optional[float] = None
+    gamma: Optional[float] = None
+    theta: Optional[float] = None
+    vega: Optional[float] = None
+    iv: Optional[float] = None
 
 class PaperAccountResponse(BaseModel):
     account_name: str
@@ -308,6 +313,7 @@ class PaperAccountResponse(BaseModel):
     day_pnl: float
     positions: List[PaperPositionResponse]
     recent_orders: List[PaperOrderResponse]
+    portfolio_greeks: Optional[Dict[str, float]] = None
 
 # --- SCREENER SCHEMAS ---
 class ScreenerFilterRequest(BaseModel):

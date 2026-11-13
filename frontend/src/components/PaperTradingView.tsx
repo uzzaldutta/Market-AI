@@ -9,7 +9,7 @@ import { PreTradeChecklistModal } from './common/PreTradeChecklistModal';
 import { 
   Wallet, ShieldCheck, ArrowUpRight, ArrowDownRight, AlertTriangle, 
   Send, RefreshCw, Star, Layers, Activity, History, CheckCircle2, XCircle,
-  Sparkles, Target, Sliders, Zap, ChevronRight
+  Sparkles, Target, Sliders, Zap, ChevronRight, Gauge, Scale, Clock, TrendingUp
 } from 'lucide-react';
 
 type InstrumentCategory = 'EQUITY' | 'FUTURES' | 'OPTIONS';
@@ -21,6 +21,8 @@ const LOT_SIZES: Record<string, number> = {
   'BANKNIFTY': 15,
   'FINNIFTY': 40,
   'MIDCPNIFTY': 75,
+  'SENSEX': 10,
+  'BANKEX': 15,
   'RELIANCE': 250,
   'TCS': 175,
   'HDFCBANK': 550,
@@ -58,6 +60,7 @@ export const PaperTradingView: React.FC = () => {
   // Recommendations Drawer State
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [loadingRecs, setLoadingRecs] = useState<boolean>(true);
+  const [positionFilter, setPositionFilter] = useState<'ALL' | 'EQUITY' | 'DERIVATIVES'>('ALL');
   const orderFormRef = useRef<HTMLDivElement>(null);
 
   const [livePrice, setLivePrice] = useState<number>(3000);
@@ -369,6 +372,88 @@ export const PaperTradingView: React.FC = () => {
         </div>
       </div>
 
+      {/* Institutional Portfolio Greek Risk Cockpit (NSE/BSE Derivatives) */}
+      {account.portfolio_greeks && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-[#0d1326] via-[#101b36] to-[#0d1326] border border-purple-500/30 shadow-lg space-y-3 font-mono">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-500/20 pb-2">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-purple-500/20 text-purple-400">
+                <Gauge className="w-4 h-4" />
+              </span>
+              <div>
+                <h3 className="text-xs font-bold text-white flex items-center gap-2">
+                  Institutional Portfolio Net Greeks &amp; Volatility Meter
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30">
+                    {account.portfolio_greeks.options_count} Option Leg(s) Held
+                  </span>
+                </h3>
+                <p className="text-[11px] text-gray-400 font-sans">
+                  Real-time multi-asset aggregation of directional sensitivity (Delta), curvature (Gamma), daily time decay (Theta), and volatility exposure (Vega).
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold border ${
+                Math.abs(account.portfolio_greeks.net_delta) < 15
+                  ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                  : account.portfolio_greeks.net_delta > 0
+                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                  : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+              }`}>
+                {Math.abs(account.portfolio_greeks.net_delta) < 15
+                  ? '⚖️ DELTA NEUTRAL'
+                  : account.portfolio_greeks.net_delta > 0
+                  ? '📈 NET BULLISH DELTA'
+                  : '📉 NET BEARISH DELTA'}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="p-2.5 rounded-xl bg-slate-950/70 border border-purple-500/20">
+              <span className="text-[10px] text-gray-400 block">PORTFOLIO NET DELTA (Δ)</span>
+              <div className={`text-base font-bold mt-0.5 ${account.portfolio_greeks.net_delta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {account.portfolio_greeks.net_delta > 0 ? '+' : ''}{account.portfolio_greeks.net_delta} units
+              </div>
+              <span className="text-[9px] text-gray-500 block mt-0.5 font-sans">
+                Equivalent directional shares/underlying
+              </span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-950/70 border border-purple-500/20">
+              <span className="text-[10px] text-gray-400 block">PORTFOLIO NET GAMMA (Γ)</span>
+              <div className="text-base font-bold text-cyan-400 mt-0.5">
+                {account.portfolio_greeks.net_gamma > 0 ? '+' : ''}{account.portfolio_greeks.net_gamma}
+              </div>
+              <span className="text-[9px] text-gray-500 block mt-0.5 font-sans">
+                Delta curvature acceleration
+              </span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-950/70 border border-purple-500/20">
+              <span className="text-[10px] text-gray-400 block">DAILY TIME DECAY (Θ)</span>
+              <div className={`text-base font-bold mt-0.5 ${account.portfolio_greeks.net_theta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {account.portfolio_greeks.net_theta >= 0 ? '+' : ''}₹{account.portfolio_greeks.net_theta.toFixed(2)} / day
+              </div>
+              <span className="text-[9px] text-gray-500 block mt-0.5 font-sans">
+                {account.portfolio_greeks.net_theta >= 0 ? 'Positive theta decay inflow' : 'Negative theta bleeding burn'}
+              </span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-950/70 border border-purple-500/20">
+              <span className="text-[10px] text-gray-400 block">VOLATILITY VEGA (ν)</span>
+              <div className={`text-base font-bold mt-0.5 ${account.portfolio_greeks.net_vega >= 0 ? 'text-purple-400' : 'text-amber-400'}`}>
+                {account.portfolio_greeks.net_vega >= 0 ? '+' : ''}₹{account.portfolio_greeks.net_vega.toFixed(2)} / 1% IV
+              </div>
+              <span className="text-[9px] text-gray-500 block mt-0.5 font-sans">
+                PnL shift per 1% change in India VIX
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Embedded High-Conviction AI Recommendations Shelf */}
       <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#0a0f1e] via-[#0d162d] to-[#0a0f1e] border border-cyan-500/30 shadow-xl space-y-3">
         <div className="flex items-center justify-between pb-2 border-b border-slate-800">
@@ -544,6 +629,33 @@ export const PaperTradingView: React.FC = () => {
                 placeholder="e.g. NIFTY50, RELIANCE, TCS"
                 className="w-full bg-terminal-dark border border-terminal-border rounded-lg p-2 text-white font-bold focus:outline-none focus:border-blue-500 uppercase"
               />
+              {/* Quick F&O Shortcuts (NSE & BSE) */}
+              {(category === 'OPTIONS' || category === 'FUTURES') && (
+                <div className="flex flex-wrap gap-1.5 pt-1.5">
+                  {[
+                    { sym: 'NIFTY50', ex: 'NSE' },
+                    { sym: 'BANKNIFTY', ex: 'NSE' },
+                    { sym: 'FINNIFTY', ex: 'NSE' },
+                    { sym: 'SENSEX', ex: 'BSE' },
+                    { sym: 'BANKEX', ex: 'BSE' },
+                    { sym: 'RELIANCE', ex: 'NSE' }
+                  ].map(item => (
+                    <button
+                      key={item.sym}
+                      type="button"
+                      onClick={() => setSymbol(item.sym)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all flex items-center gap-1 ${
+                        symbol === item.sym
+                          ? 'bg-purple-600 text-white shadow-sm'
+                          : 'bg-slate-900 border border-slate-800 text-gray-300 hover:border-purple-500/50'
+                      }`}
+                    >
+                      <span>{item.sym}</span>
+                      <span className="text-[8px] opacity-70 font-sans">{item.ex}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Side Selector (BUY vs SELL) */}
@@ -787,12 +899,45 @@ export const PaperTradingView: React.FC = () => {
           {/* Active Positions Table */}
           <div className="p-5 rounded-xl bg-terminal-surface border border-terminal-border shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <h2 className="text-xs uppercase font-mono font-semibold tracking-wider text-gray-300 flex items-center gap-2">
-                <Layers className="w-4 h-4 text-blue-400" /> Active Open Positions ({account.positions.length})
-              </h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-xs uppercase font-mono font-semibold tracking-wider text-gray-300 flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-blue-400" /> Active Positions ({account.positions.length})
+                </h2>
+
+                {/* Filter Pills */}
+                <div className="flex items-center space-x-1 bg-slate-900/80 p-0.5 rounded-lg border border-slate-800 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => setPositionFilter('ALL')}
+                    className={`px-2 py-0.5 rounded font-bold transition-colors ${
+                      positionFilter === 'ALL' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    All ({account.positions.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPositionFilter('EQUITY')}
+                    className={`px-2 py-0.5 rounded font-bold transition-colors ${
+                      positionFilter === 'EQUITY' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Equity ({account.positions.filter(p => !p.instrument_type || p.instrument_type === 'EQUITY').length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPositionFilter('DERIVATIVES')}
+                    className={`px-2 py-0.5 rounded font-bold transition-colors ${
+                      positionFilter === 'DERIVATIVES' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    F&amp;O ({account.positions.filter(p => p.instrument_type === 'OPTIONS' || p.instrument_type === 'FUTURES').length})
+                  </button>
+                </div>
+              </div>
 
               <div className="flex items-center space-x-2">
-                <span className="text-[10px] text-gray-500 font-mono hidden sm:inline">Live Mark-to-Market Valuation</span>
+                <span className="text-[10px] text-gray-500 font-mono hidden sm:inline">Live Mark-to-Market</span>
                 {account.positions.length > 0 && (
                   <button
                     onClick={handleSquareOffAll}
@@ -819,67 +964,99 @@ export const PaperTradingView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-terminal-border/50">
-                  {account.positions.length === 0 ? (
+                  {account.positions
+                    .filter(p => {
+                      if (positionFilter === 'EQUITY') return !p.instrument_type || p.instrument_type === 'EQUITY';
+                      if (positionFilter === 'DERIVATIVES') return p.instrument_type === 'OPTIONS' || p.instrument_type === 'FUTURES';
+                      return true;
+                    })
+                    .length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-8 text-center text-gray-500">
-                        No open positions currently held in virtual ledger.
+                        No positions matching filter criteria.
                       </td>
                     </tr>
                   ) : (
-                    account.positions.map((pos, idx) => {
-                      const isWin = pos.unrealized_pnl >= 0;
-                      const instType = pos.instrument_type || 'EQUITY';
-                      return (
-                        <tr key={`${pos.symbol}-${idx}`} className="hover:bg-terminal-hover">
-                          <td className="py-2.5 font-bold text-white">
-                            <div>{pos.contract_display || pos.symbol}</div>
-                            {pos.lot_size && pos.lot_size > 1 && (
-                              <span className="text-[10px] text-gray-400 font-normal">Lot Size: {pos.lot_size}</span>
-                            )}
-                          </td>
-                          <td className="py-2.5 text-center">
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                              instType === 'OPTIONS' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' :
-                              instType === 'FUTURES' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                              'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                            }`}>
-                              {instType}
-                            </span>
-                          </td>
-                          <td className={`py-2.5 text-right font-bold ${pos.net_quantity > 0 ? 'text-white' : 'text-rose-400'}`}>
-                            {pos.net_quantity > 0 ? `+${pos.net_quantity}` : pos.net_quantity}
-                          </td>
-                          <td className="py-2.5 text-right text-gray-400">₹{pos.average_buy_price.toFixed(2)}</td>
-                          <td className="py-2.5 text-right">
-                            <PriceFlash
-                              value={pos.current_market_price}
-                              flashMode="cell"
-                              className="font-semibold text-gray-200"
-                              enableLiveSimulation={true}
-                            />
-                          </td>
-                          <td className="py-2.5 text-right">
-                            <PriceFlash
-                              value={pos.unrealized_pnl}
-                              prefix={isWin ? '+₹' : '₹'}
-                              flashMode="cell"
-                              className={`font-bold ${isWin ? 'text-terminal-green' : 'text-terminal-red'}`}
-                            />
-                            <span className={`block text-[10px] ${isWin ? 'text-terminal-green' : 'text-terminal-red'}`}>
-                              ({isWin ? '+' : ''}{pos.pnl_percentage.toFixed(2)}%)
-                            </span>
-                          </td>
-                          <td className="py-2.5 text-center">
-                            <button
-                              onClick={() => handleSquareOff(pos)}
-                              className="px-2.5 py-1 rounded text-[10px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-colors font-bold"
-                            >
-                              Square Off
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
+                    account.positions
+                      .filter(p => {
+                        if (positionFilter === 'EQUITY') return !p.instrument_type || p.instrument_type === 'EQUITY';
+                        if (positionFilter === 'DERIVATIVES') return p.instrument_type === 'OPTIONS' || p.instrument_type === 'FUTURES';
+                        return true;
+                      })
+                      .map((pos, idx) => {
+                        const isWin = pos.unrealized_pnl >= 0;
+                        const instType = pos.instrument_type || 'EQUITY';
+                        return (
+                          <tr key={`${pos.symbol}-${idx}`} className="hover:bg-terminal-hover">
+                            <td className="py-2.5 font-bold text-white">
+                              <div className="flex items-center gap-1.5">
+                                <span>{pos.contract_display || pos.symbol}</span>
+                                {pos.option_type && (
+                                  <span className={`text-[9px] px-1 py-0.2 rounded font-extrabold ${
+                                    pos.option_type === 'CE' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                  }`}>
+                                    {pos.option_type}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-gray-400 font-normal mt-0.5">
+                                {pos.lot_size && pos.lot_size > 1 && <span>Lot: {pos.lot_size}</span>}
+                                {pos.delta !== undefined && pos.delta !== null && (
+                                  <span className="text-cyan-400 font-mono">Δ: {pos.delta}</span>
+                                )}
+                                {pos.theta !== undefined && pos.theta !== null && (
+                                  <span className={`font-mono ${pos.theta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    Θ: {pos.theta >= 0 ? '+' : ''}₹{pos.theta}/d
+                                  </span>
+                                )}
+                                {pos.iv !== undefined && pos.iv !== null && (
+                                  <span className="text-purple-400 font-mono">IV: {pos.iv}%</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-2.5 text-center">
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                instType === 'OPTIONS' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' :
+                                instType === 'FUTURES' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                              }`}>
+                                {instType}
+                              </span>
+                            </td>
+                            <td className={`py-2.5 text-right font-bold ${pos.net_quantity > 0 ? 'text-white' : 'text-rose-400'}`}>
+                              {pos.net_quantity > 0 ? `+${pos.net_quantity}` : pos.net_quantity}
+                            </td>
+                            <td className="py-2.5 text-right text-gray-400">₹{pos.average_buy_price.toFixed(2)}</td>
+                            <td className="py-2.5 text-right">
+                              <PriceFlash
+                                value={pos.current_market_price}
+                                flashMode="cell"
+                                className="font-semibold text-gray-200"
+                                enableLiveSimulation={true}
+                              />
+                            </td>
+                            <td className="py-2.5 text-right">
+                              <PriceFlash
+                                value={pos.unrealized_pnl}
+                                prefix={isWin ? '+₹' : '₹'}
+                                flashMode="cell"
+                                className={`font-bold ${isWin ? 'text-terminal-green' : 'text-terminal-red'}`}
+                              />
+                              <span className={`block text-[10px] ${isWin ? 'text-terminal-green' : 'text-terminal-red'}`}>
+                                ({isWin ? '+' : ''}{pos.pnl_percentage.toFixed(2)}%)
+                              </span>
+                            </td>
+                            <td className="py-2.5 text-center">
+                              <button
+                                onClick={() => handleSquareOff(pos)}
+                                className="px-2.5 py-1 rounded text-[10px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-colors font-bold"
+                              >
+                                Square Off
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                   )}
                 </tbody>
               </table>

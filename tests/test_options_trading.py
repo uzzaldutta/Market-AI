@@ -63,3 +63,19 @@ def test_direct_options_paper_order_execution():
     assert pos["net_quantity"] >= 10
     assert pos["instrument_type"] == "OPTIONS"
     assert "SENSEX" in pos["contract_display"]
+
+    # Verify Greeks calculation in Account Summary
+    summary = paper_engine.get_account_summary()
+    assert summary.portfolio_greeks is not None
+    assert summary.portfolio_greeks["options_count"] >= 1
+    assert summary.portfolio_greeks["net_delta"] != 0.0
+
+    # Verify Greeks on the individual option position
+    opt_positions = [p for p in summary.positions if p.instrument_type == "OPTIONS"]
+    assert len(opt_positions) >= 1
+    p = opt_positions[0]
+    assert p.delta is not None and p.delta > 0 # Call option has positive delta
+    assert p.gamma is not None and p.gamma >= 0
+    assert p.theta is not None
+    assert p.vega is not None
+    assert p.iv is not None and p.iv > 0

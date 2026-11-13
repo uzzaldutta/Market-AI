@@ -425,14 +425,57 @@ class PaperTradingEngine:
         unrealized = self.get_unrealized_pnl()
 
         active_positions = []
+        portfolio_net_delta = 0.0
+        portfolio_net_gamma = 0.0
+        portfolio_net_theta = 0.0
+        portfolio_net_vega = 0.0
+        opt_count = 0
+
         for pos in self.positions.values():
             if pos["net_quantity"] != 0:
                 cost_basis = pos["average_buy_price"] * abs(pos["net_quantity"])
                 pnl_pct = (pos["unrealized_pnl"] / cost_basis * 100.0) if cost_basis > 0 else 0.0
+                
+                inst = pos.get("instrument_type", "EQUITY")
+                qty = pos["net_quantity"]
+                p_delta = None
+                p_gamma = None
+                p_theta = None
+                p_vega = None
+                p_iv = None
+
+                if inst == "OPTIONS":
+                    s = pos.get("underlying_price") or pos.get("current_market_price", 1000.0)
+                    k = pos.get("strike_price") or s
+                    opt_t = (pos.get("option_type") or "CE").upper()
+                    t = 14.0 / 365.0 # near-term proxy (approx 14 days)
+                    price = max(0.5, pos.get("current_market_price", 10.0))
+                    r = 0.065
+                    calc_iv = OptionsMath.implied_volatility(price, s, k, t, r, opt_t)
+                    g = OptionsMath.calculate_greeks(s, k, t, r, calc_iv, opt_t)
+                    
+                    p_delta = round(g["delta"], 4)
+                    p_gamma = round(g["gamma"], 6)
+                    p_theta = round(g["theta"], 2)
+                    p_vega = round(g["vega"], 2)
+                    p_iv = round(calc_iv * 100.0, 1)
+
+                    portfolio_net_delta += (g["delta"] * qty)
+                    portfolio_net_gamma += (g["gamma"] * qty)
+                    portfolio_net_theta += (g["theta"] * qty)
+                    portfolio_net_vega += (g["vega"] * qty)
+                    opt_count += 1
+                elif inst in ("EQUITY", "FUTURES"):
+                    p_delta = 1.0
+                    p_gamma = 0.0
+                    p_theta = 0.0
+                    p_vega = 0.0
+                    portfolio_net_delta += (1.0 * qty)
+
                 active_positions.append(PaperPositionResponse(
                     symbol=pos["symbol"],
                     product_type=pos["product_type"],
-                    instrument_type=pos.get("instrument_type", "EQUITY"),
+                    instrument_type=inst,
                     contract_display=pos.get("contract_display", pos["symbol"]),
                     net_quantity=pos["net_quantity"],
                     lot_size=pos.get("lot_size", 1),
@@ -443,10 +486,23 @@ class PaperTradingEngine:
                     pnl_percentage=round(pnl_pct, 2),
                     strike_price=pos.get("strike_price"),
                     option_type=pos.get("option_type"),
-                    expiry_date=pos.get("expiry_date")
+                    expiry_date=pos.get("expiry_date"),
+                    delta=p_delta,
+                    gamma=p_gamma,
+                    theta=p_theta,
+                    vega=p_vega,
+                    iv=p_iv
                 ))
 
         recent_orders_list = [PaperOrderResponse(**o) for o in list(self.orders.values())[-15:]]
+
+        portfolio_greeks_summary = {
+            "net_delta": round(portfolio_net_delta, 2),
+            "net_gamma": round(portfolio_net_gamma, 4),
+            "net_theta": round(portfolio_net_theta, 2),
+            "net_vega": round(portfolio_net_vega, 2),
+            "options_count": opt_count
+        }
 
         return PaperAccountResponse(
             account_name="Primary Virtual Portfolio (NSE/BSE Equities & F&O)",
@@ -460,7 +516,8 @@ class PaperTradingEngine:
             realized_pnl=round(self.realized_pnl, 2),
             day_pnl=round(unrealized + self.realized_pnl, 2),
             positions=active_positions,
-            recent_orders=recent_orders_list
+            recent_orders=recent_orders_list,
+            portfolio_greeks=portfolio_greeks_summary
         )
 
 # Global singleton paper engine instance

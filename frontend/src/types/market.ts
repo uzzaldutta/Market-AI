@@ -208,6 +208,11 @@ export interface PaperPosition {
   strike_price?: number;
   option_type?: 'CE' | 'PE';
   expiry_date?: string;
+  delta?: number;
+  gamma?: number;
+  theta?: number;
+  vega?: number;
+  iv?: number;
 }
 
 export interface PaperOrder {
@@ -230,6 +235,14 @@ export interface PaperOrder {
   created_at: string;
 }
 
+export interface PaperPortfolioGreeks {
+  net_delta: number;
+  net_gamma: number;
+  net_theta: number;
+  net_vega: number;
+  options_count: number;
+}
+
 export interface PaperAccount {
   account_name: string;
   base_currency: string;
@@ -243,6 +256,7 @@ export interface PaperAccount {
   day_pnl: number;
   positions: PaperPosition[];
   recent_orders: PaperOrder[];
+  portfolio_greeks?: PaperPortfolioGreeks;
 }
 
 export interface FavouriteItem {

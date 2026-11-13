@@ -16,7 +16,8 @@ import {
   DollarSign,
   AlertCircle,
   CheckCircle2,
-  HelpCircle
+  HelpCircle,
+  ExternalLink
 } from 'lucide-react';
 
 interface Props {
@@ -25,76 +26,91 @@ interface Props {
   onNavigateTab?: (tab: string) => void;
 }
 
-const PRESET_STRATEGIES: Record<string, { name: string; getLegs: (spot: number) => OptionLeg[] }> = {
-  BULL_CALL_SPREAD: {
-    name: 'Bull Call Spread',
-    getLegs: (spot: number) => {
-      const strike1 = Math.round(spot / 50) * 50;
-      const strike2 = strike1 + 300;
-      return [
-        { strike: strike1, option_type: 'CE', side: 'BUY', quantity: 50, premium: 165.0, iv: 0.14 },
-        { strike: strike2, option_type: 'CE', side: 'SELL', quantity: 50, premium: 52.0, iv: 0.13 }
-      ];
-    }
-  },
-  BEAR_PUT_SPREAD: {
-    name: 'Bear Put Spread',
-    getLegs: (spot: number) => {
-      const strike1 = Math.round(spot / 50) * 50;
-      const strike2 = strike1 - 300;
-      return [
-        { strike: strike1, option_type: 'PE', side: 'BUY', quantity: 50, premium: 155.0, iv: 0.14 },
-        { strike: strike2, option_type: 'PE', side: 'SELL', quantity: 50, premium: 48.0, iv: 0.15 }
-      ];
-    }
-  },
-  IRON_CONDOR: {
-    name: 'Iron Condor',
-    getLegs: (spot: number) => {
-      const atm = Math.round(spot / 50) * 50;
-      return [
-        { strike: atm - 500, option_type: 'PE', side: 'BUY', quantity: 50, premium: 18.0, iv: 0.16 },
-        { strike: atm - 250, option_type: 'PE', side: 'SELL', quantity: 50, premium: 65.0, iv: 0.15 },
-        { strike: atm + 250, option_type: 'CE', side: 'SELL', quantity: 50, premium: 68.0, iv: 0.14 },
-        { strike: atm + 500, option_type: 'CE', side: 'BUY', quantity: 50, premium: 20.0, iv: 0.13 }
-      ];
-    }
-  },
-  LONG_STRADDLE: {
-    name: 'Long Straddle',
-    getLegs: (spot: number) => {
-      const atm = Math.round(spot / 50) * 50;
-      return [
-        { strike: atm, option_type: 'CE', side: 'BUY', quantity: 50, premium: 175.0, iv: 0.14 },
-        { strike: atm, option_type: 'PE', side: 'BUY', quantity: 50, premium: 165.0, iv: 0.14 }
-      ];
-    }
-  },
-  SHORT_STRANGLE: {
-    name: 'Short Strangle',
-    getLegs: (spot: number) => {
-      const atm = Math.round(spot / 50) * 50;
-      return [
-        { strike: atm - 300, option_type: 'PE', side: 'SELL', quantity: 50, premium: 55.0, iv: 0.15 },
-        { strike: atm + 300, option_type: 'CE', side: 'SELL', quantity: 50, premium: 58.0, iv: 0.14 }
-      ];
-    }
+interface AssetConfig {
+  symbol: string;
+  name: string;
+  exchange: 'NSE' | 'BSE';
+  spot: number;
+  step: number;
+  lotSize: number;
+}
+
+const SUPPORTED_ASSETS: AssetConfig[] = [
+  { symbol: 'NIFTY50', name: 'NIFTY 50', exchange: 'NSE', spot: 24850, step: 50, lotSize: 50 },
+  { symbol: 'BANKNIFTY', name: 'BANK NIFTY', exchange: 'NSE', spot: 51200, step: 100, lotSize: 15 },
+  { symbol: 'FINNIFTY', name: 'FINNIFTY', exchange: 'NSE', spot: 23850, step: 50, lotSize: 25 },
+  { symbol: 'MIDCPNIFTY', name: 'MIDCP NIFTY', exchange: 'NSE', spot: 12850, step: 25, lotSize: 50 },
+  { symbol: 'SENSEX', name: 'BSE SENSEX', exchange: 'BSE', spot: 79450, step: 100, lotSize: 10 },
+  { symbol: 'BANKEX', name: 'BSE BANKEX', exchange: 'BSE', spot: 58200, step: 100, lotSize: 15 },
+  { symbol: 'RELIANCE', name: 'Reliance', exchange: 'NSE', spot: 2980, step: 20, lotSize: 250 },
+  { symbol: 'TCS', name: 'TCS', exchange: 'NSE', spot: 4120, step: 20, lotSize: 175 },
+  { symbol: 'HDFCBANK', name: 'HDFC Bank', exchange: 'NSE', spot: 1640, step: 10, lotSize: 550 },
+  { symbol: 'INFY', name: 'Infosys', exchange: 'NSE', spot: 1890, step: 10, lotSize: 400 }
+];
+
+const getPresetLegs = (key: string, spot: number, step: number = 50, lot: number = 50): OptionLeg[] => {
+  const atm = Math.round(spot / step) * step;
+  if (key === 'BULL_CALL_SPREAD') {
+    return [
+      { strike: atm, option_type: 'CE', side: 'BUY', quantity: lot, premium: Math.round(spot * 0.007), iv: 0.14 },
+      { strike: atm + step * 4, option_type: 'CE', side: 'SELL', quantity: lot, premium: Math.round(spot * 0.0025), iv: 0.13 }
+    ];
+  } else if (key === 'BEAR_PUT_SPREAD') {
+    return [
+      { strike: atm, option_type: 'PE', side: 'BUY', quantity: lot, premium: Math.round(spot * 0.0065), iv: 0.14 },
+      { strike: atm - step * 4, option_type: 'PE', side: 'SELL', quantity: lot, premium: Math.round(spot * 0.0022), iv: 0.15 }
+    ];
+  } else if (key === 'IRON_CONDOR') {
+    return [
+      { strike: atm - step * 6, option_type: 'PE', side: 'BUY', quantity: lot, premium: Math.max(5, Math.round(spot * 0.001)), iv: 0.16 },
+      { strike: atm - step * 3, option_type: 'PE', side: 'SELL', quantity: lot, premium: Math.round(spot * 0.003), iv: 0.15 },
+      { strike: atm + step * 3, option_type: 'CE', side: 'SELL', quantity: lot, premium: Math.round(spot * 0.003), iv: 0.14 },
+      { strike: atm + step * 6, option_type: 'CE', side: 'BUY', quantity: lot, premium: Math.max(5, Math.round(spot * 0.001)), iv: 0.13 }
+    ];
+  } else if (key === 'LONG_STRADDLE') {
+    return [
+      { strike: atm, option_type: 'CE', side: 'BUY', quantity: lot, premium: Math.round(spot * 0.007), iv: 0.14 },
+      { strike: atm, option_type: 'PE', side: 'BUY', quantity: lot, premium: Math.round(spot * 0.0065), iv: 0.14 }
+    ];
+  } else {
+    // SHORT_STRANGLE
+    return [
+      { strike: atm - step * 4, option_type: 'PE', side: 'SELL', quantity: lot, premium: Math.round(spot * 0.0025), iv: 0.15 },
+      { strike: atm + step * 4, option_type: 'CE', side: 'SELL', quantity: lot, premium: Math.round(spot * 0.0025), iv: 0.14 }
+    ];
   }
+};
+
+const PRESET_LABELS: Record<string, string> = {
+  BULL_CALL_SPREAD: 'Bull Call Spread',
+  BEAR_PUT_SPREAD: 'Bear Put Spread',
+  IRON_CONDOR: 'Iron Condor',
+  LONG_STRADDLE: 'Long Straddle',
+  SHORT_STRANGLE: 'Short Strangle'
 };
 
 export const OptionsStrategyBuilderView: React.FC<Props> = ({
   initialSymbol = 'NIFTY50',
-  initialSpot = 24500,
+  initialSpot = 24850,
   onNavigateTab
 }) => {
   const [symbol, setSymbol] = useState<string>(initialSymbol);
   const [spotPrice, setSpotPrice] = useState<number>(initialSpot);
   const [daysToExpiry, setDaysToExpiry] = useState<number>(7);
   const [strategyName, setStrategyName] = useState<string>('Bull Call Spread');
-  const [legs, setLegs] = useState<OptionLeg[]>(PRESET_STRATEGIES.BULL_CALL_SPREAD.getLegs(initialSpot));
+  const [legs, setLegs] = useState<OptionLeg[]>(getPresetLegs('BULL_CALL_SPREAD', initialSpot, 50, 50));
   const [payoff, setPayoff] = useState<OptionStrategyPayoffResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [orderSuccess, setOrderSuccess] = useState<string | null>(null);
+
+  const activeAsset = SUPPORTED_ASSETS.find((a) => a.symbol === symbol) || SUPPORTED_ASSETS[0];
+
+  const handleSelectAsset = (cfg: AssetConfig) => {
+    setSymbol(cfg.symbol);
+    setSpotPrice(cfg.spot);
+    setLegs(getPresetLegs('BULL_CALL_SPREAD', cfg.spot, cfg.step, cfg.lotSize));
+    setStrategyName('Bull Call Spread');
+  };
 
   const calculatePayoff = async () => {
     setLoading(true);
@@ -120,10 +136,10 @@ export const OptionsStrategyBuilderView: React.FC<Props> = ({
   }, [spotPrice, daysToExpiry, legs]);
 
   const handleApplyPreset = (key: string) => {
-    const preset = PRESET_STRATEGIES[key];
-    if (preset) {
-      setStrategyName(preset.name);
-      setLegs(preset.getLegs(spotPrice));
+    const label = PRESET_LABELS[key];
+    if (label) {
+      setStrategyName(label);
+      setLegs(getPresetLegs(key, spotPrice, activeAsset.step, activeAsset.lotSize));
     }
   };
 
@@ -134,10 +150,10 @@ export const OptionsStrategyBuilderView: React.FC<Props> = ({
   };
 
   const handleAddLeg = () => {
-    const atm = Math.round(spotPrice / 50) * 50;
+    const atm = Math.round(spotPrice / activeAsset.step) * activeAsset.step;
     setLegs([
       ...legs,
-      { strike: atm, option_type: 'CE', side: 'BUY', quantity: 50, premium: 100.0, iv: 0.14 }
+      { strike: atm, option_type: 'CE', side: 'BUY', quantity: activeAsset.lotSize, premium: 100.0, iv: 0.14 }
     ]);
   };
 
@@ -149,19 +165,27 @@ export const OptionsStrategyBuilderView: React.FC<Props> = ({
   const handleSimulateExecution = async () => {
     try {
       for (const leg of legs) {
+        const unitsInLots = Math.max(1, Math.round(leg.quantity / activeAsset.lotSize));
         await placePaperOrder({
-          symbol: `${symbol}_${leg.strike}_${leg.option_type}`,
+          symbol: symbol.toUpperCase(),
           side: leg.side,
-          quantity: leg.quantity,
+          quantity: unitsInLots,
           order_type: 'MARKET',
+          product_type: 'NRML',
           instrument_type: 'OPTIONS',
-          product: 'NRML'
+          strike_price: leg.strike,
+          option_type: leg.option_type,
+          lot_size: activeAsset.lotSize,
+          price: leg.premium,
+          client_order_id: `STRAT-${symbol}-${leg.strike}-${leg.option_type}-${Date.now()}`
         });
       }
-      setOrderSuccess(`Multi-leg strategy basket (${legs.length} legs) submitted to Virtual Paper Trading account!`);
-      setTimeout(() => setOrderSuccess(null), 6000);
+      setOrderSuccess(
+        `Multi-leg ${strategyName} (${legs.length} legs) successfully filled in your Virtual Paper Portfolio!`
+      );
+      setTimeout(() => setOrderSuccess(null), 8000);
     } catch (err: any) {
-      alert(`Paper order placement failed: ${err.message}`);
+      alert(`Paper basket order placement failed: ${err.message}`);
     }
   };
 
@@ -190,38 +214,104 @@ export const OptionsStrategyBuilderView: React.FC<Props> = ({
     minPnl = Math.min(...allPnls);
     maxPnl = Math.max(...allPnls);
 
-    // Give breathing room
-    const pnlRange = maxPnl - minPnl;
-    minPnl -= pnlRange * 0.1;
-    maxPnl += pnlRange * 0.1;
+    const pnlMargin = Math.max(Math.abs(minPnl), Math.abs(maxPnl)) * 0.1 || 500;
+    minPnl -= pnlMargin;
+    maxPnl += pnlMargin;
   }
 
   const getX = (price: number) => {
-    const pct = (price - minPrice) / (maxPrice - minPrice || 1);
-    return padding.left + pct * chartWidth;
+    return padding.left + ((price - minPrice) / (maxPrice - minPrice || 1)) * chartWidth;
   };
 
-  const getY = (pnlVal: number) => {
-    const clamped = Math.max(minPnl, Math.min(maxPnl, pnlVal));
-    const pct = (clamped - minPnl) / (maxPnl - minPnl || 1);
-    return padding.top + chartHeight - pct * chartHeight;
+  const getY = (pnl: number) => {
+    return padding.top + chartHeight - ((pnl - minPnl) / (maxPnl - minPnl || 1)) * chartHeight;
   };
 
   const zeroY = getY(0);
 
-  // Expiry path
-  const expiryPointsStr = (payoff?.payoff_curve || [])
+  const expiryPointsStr = payoff?.payoff_curve
     .map((p) => `${getX(p.underlying_price)},${getY(p.payoff_at_expiry)}`)
     .join(' ');
 
-  // T+n path
-  const tnPointsStr = (payoff?.payoff_curve || [])
+  const tnPointsStr = payoff?.payoff_curve
     .map((p) => `${getX(p.underlying_price)},${getY(p.payoff_t_plus_n)}`)
     .join(' ');
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top Banner */}
+      {/* 0. Asset & Exchange Selector Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-[#070b16] rounded-2xl border border-slate-800 shadow-md font-mono text-xs">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] text-blue-400 font-extrabold uppercase mr-1 flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            NSE F&O:
+          </span>
+          {SUPPORTED_ASSETS.filter((a) => a.exchange === 'NSE' && a.symbol.includes('NIFTY')).map((a) => (
+            <button
+              key={a.symbol}
+              onClick={() => handleSelectAsset(a)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                symbol === a.symbol
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+              }`}
+            >
+              {a.name}
+            </button>
+          ))}
+
+          <span className="text-slate-700 mx-1.5">|</span>
+
+          <span className="text-[10px] text-amber-400 font-extrabold uppercase mr-1 flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            BSE F&O:
+          </span>
+          {SUPPORTED_ASSETS.filter((a) => a.exchange === 'BSE').map((a) => (
+            <button
+              key={a.symbol}
+              onClick={() => handleSelectAsset(a)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                symbol === a.symbol
+                  ? 'bg-amber-600 text-white shadow'
+                  : 'bg-slate-900 text-slate-400 hover:text-amber-300 hover:bg-slate-800 border border-slate-800'
+              }`}
+            >
+              {a.name} (BSE)
+            </button>
+          ))}
+
+          <span className="text-slate-700 mx-1.5">|</span>
+
+          <span className="text-[10px] text-slate-400 font-extrabold uppercase mr-1">
+            Equities:
+          </span>
+          {SUPPORTED_ASSETS.filter((a) => !a.symbol.includes('NIFTY') && a.exchange !== 'BSE').map((a) => (
+            <button
+              key={a.symbol}
+              onClick={() => handleSelectAsset(a)}
+              className={`px-2 py-1 rounded-lg text-xs font-bold transition-all ${
+                symbol === a.symbol
+                  ? 'bg-cyan-600 text-white shadow'
+                  : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+              }`}
+            >
+              {a.name}
+            </button>
+          ))}
+        </div>
+
+        {onNavigateTab && (
+          <button
+            onClick={() => onNavigateTab('paper')}
+            className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-cyan-500/30 text-cyan-300 text-xs font-bold flex items-center gap-1.5 transition ml-auto shadow-sm"
+          >
+            <span>📋 View in Paper Portfolio</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Top Banner with Presets & Settings */}
       <div className="bg-gradient-to-r from-[#0c1429] via-[#0f1a36] to-[#0c1429] border border-blue-500/20 rounded-2xl p-6 relative overflow-hidden shadow-2xl">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
           <div>
@@ -231,7 +321,7 @@ export const OptionsStrategyBuilderView: React.FC<Props> = ({
               </span>
               <div>
                 <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-                  Options Strategy Payoff Simulator
+                  {activeAsset.name} ({activeAsset.exchange}) Strategy Payoff Simulator
                   <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 border border-blue-500/40 text-blue-300 font-mono">
                     MULTI-LEG GREEKS
                   </span>
@@ -247,32 +337,32 @@ export const OptionsStrategyBuilderView: React.FC<Props> = ({
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                 Institutional Presets:
               </span>
-              {Object.entries(PRESET_STRATEGIES).map(([k, p]) => (
+              {Object.entries(PRESET_LABELS).map(([k, label]) => (
                 <button
                   key={k}
                   onClick={() => handleApplyPreset(k)}
                   className={`px-2.5 py-1 text-xs rounded-lg border transition-all ${
-                    strategyName === p.name
+                    strategyName === label
                       ? 'bg-blue-600 border-blue-500 text-white font-bold shadow-md'
                       : 'bg-slate-900/60 border-slate-700/60 text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  {p.name}
+                  {label}
                 </button>
               ))}
             </div>
           </div>
 
           {/* Quick Underlying Settings */}
-          <div className="flex items-center gap-3 bg-slate-900/90 border border-slate-700/70 p-3 rounded-xl shadow-inner">
+          <div className="flex items-center gap-3 bg-slate-900/90 border border-slate-700/70 p-3 rounded-xl shadow-inner font-mono text-xs">
             <div>
               <label className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block mb-1">
-                Underlying Spot
+                Underlying Spot (₹)
               </label>
               <input
                 type="number"
                 value={spotPrice}
-                onChange={(e) => setSpotPrice(parseFloat(e.target.value) || initialSpot)}
+                onChange={(e) => setSpotPrice(parseFloat(e.target.value) || activeAsset.spot)}
                 className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono text-cyan-300 focus:outline-none focus:border-blue-500 font-bold"
               />
             </div>
@@ -294,209 +384,187 @@ export const OptionsStrategyBuilderView: React.FC<Props> = ({
       </div>
 
       {orderSuccess && (
-        <div className="p-4 bg-emerald-950/40 border border-emerald-500/50 rounded-xl text-emerald-300 text-xs font-mono flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          {orderSuccess}
+        <div className="p-4 bg-emerald-950/60 border border-emerald-500/50 rounded-2xl text-emerald-300 text-xs font-mono flex flex-wrap items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+            <span className="font-bold">{orderSuccess}</span>
+          </div>
+          {onNavigateTab && (
+            <button
+              onClick={() => onNavigateTab('paper')}
+              className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold transition flex items-center gap-1.5 shadow"
+            >
+              <span>📋 View in Paper Portfolio</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       )}
 
-      {/* Payoff Chart & Key Metrics Grid */}
+      {/* Main Grid: Interactive Payoff Graph & Summary Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* SVG Payoff Curve Chart (8 Cols) */}
+        {/* Left Column: Interactive Payoff Chart */}
         <div className="lg:col-span-8 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-bold text-white">Interactive Payoff Diagram (P&amp;L vs Underlying)</h3>
+          <div>
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-cyan-400" />
+                <h3 className="text-base font-bold text-white">Expiration &amp; T+{Math.round(daysToExpiry / 2)} Payoff Curve</h3>
+              </div>
+              <div className="flex items-center gap-4 text-xs font-mono">
+                <span className="flex items-center gap-1.5 text-emerald-400">
+                  <span className="w-3 h-0.5 bg-emerald-400 inline-block" /> Payoff at Expiry
+                </span>
+                <span className="flex items-center gap-1.5 text-amber-400">
+                  <span className="w-3 h-0.5 bg-amber-400 border-dashed border-b inline-block" /> T+{Math.round(daysToExpiry / 2)} (Half-life)
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-4 text-[11px] font-mono">
-              <span className="flex items-center gap-1.5 text-cyan-400">
-                <span className="w-3 h-0.5 bg-cyan-400 inline-block" /> At Expiry
-              </span>
-              <span className="flex items-center gap-1.5 text-amber-400">
-                <span className="w-3 h-0.5 border-t border-dashed border-amber-400 inline-block" /> T+n Curve
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-300 inline-block" /> Spot (₹{spotPrice})
-              </span>
-            </div>
-          </div>
 
-          {/* SVG Diagram Canvas */}
-          <div className="w-full overflow-hidden bg-slate-950/50 rounded-xl p-2 border border-slate-800/80 my-2">
-            <svg
-              viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-              className="w-full h-64 select-none"
-            >
-              {/* Zero Profit Line */}
-              <line
-                x1={padding.left}
-                y1={zeroY}
-                x2={svgWidth - padding.right}
-                y2={zeroY}
-                stroke="#475569"
-                strokeWidth="1.5"
-                strokeDasharray="4 4"
-              />
-              <text
-                x={padding.left - 8}
-                y={zeroY + 4}
-                fill="#94a3b8"
-                fontSize="10"
-                textAnchor="end"
-                fontFamily="monospace"
+            {/* SVG Visualizer */}
+            <div className="relative w-full overflow-hidden">
+              <svg
+                viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                className="w-full h-auto select-none font-mono"
               >
-                ₹0
-              </text>
-
-              {/* Spot Price Line */}
-              <line
-                x1={getX(spotPrice)}
-                y1={padding.top}
-                x2={getX(spotPrice)}
-                y2={svgHeight - padding.bottom}
-                stroke="#06b6d4"
-                strokeWidth="1.5"
-                strokeDasharray="3 3"
-              />
-              <text
-                x={getX(spotPrice)}
-                y={svgHeight - padding.bottom + 16}
-                fill="#06b6d4"
-                fontSize="10"
-                textAnchor="middle"
-                fontFamily="monospace"
-                fontWeight="bold"
-              >
-                Spot ₹{spotPrice}
-              </text>
-
-              {/* T+n Payoff Line */}
-              {tnPointsStr && (
-                <polyline
-                  fill="none"
-                  stroke="#fbbf24"
-                  strokeWidth="2"
-                  strokeDasharray="5 3"
-                  points={tnPointsStr}
+                {/* Zero Profit Line */}
+                <line
+                  x1={padding.left}
+                  y1={zeroY}
+                  x2={svgWidth - padding.right}
+                  y2={zeroY}
+                  stroke="#475569"
+                  strokeWidth="1.5"
+                  strokeDasharray="4 4"
                 />
-              )}
+                <text
+                  x={padding.left - 8}
+                  y={zeroY + 4}
+                  fill="#94a3b8"
+                  fontSize="10"
+                  textAnchor="end"
+                  fontFamily="monospace"
+                >
+                  ₹0
+                </text>
 
-              {/* Expiry Payoff Line */}
-              {expiryPointsStr && (
-                <polyline
-                  fill="none"
-                  stroke="#38bdf8"
-                  strokeWidth="2.5"
-                  points={expiryPointsStr}
+                {/* Spot Price Line */}
+                <line
+                  x1={getX(spotPrice)}
+                  y1={padding.top}
+                  x2={getX(spotPrice)}
+                  y2={svgHeight - padding.bottom}
+                  stroke="#06b6d4"
+                  strokeWidth="1.5"
+                  strokeDasharray="3 3"
                 />
-              )}
+                <text
+                  x={getX(spotPrice)}
+                  y={svgHeight - padding.bottom + 16}
+                  fill="#06b6d4"
+                  fontSize="10"
+                  textAnchor="middle"
+                  fontFamily="monospace"
+                  fontWeight="bold"
+                >
+                  Spot ₹{spotPrice}
+                </text>
 
-              {/* Breakeven Point Markers */}
-              {(payoff?.breakeven_points || []).map((be, idx) => (
-                <g key={idx}>
-                  <circle
-                    cx={getX(be)}
-                    cy={zeroY}
-                    r="4"
-                    fill="#10b981"
-                    stroke="#ffffff"
-                    strokeWidth="1.5"
+                {/* T+n Payoff Line */}
+                {tnPointsStr && (
+                  <polyline
+                    fill="none"
+                    stroke="#fbbf24"
+                    strokeWidth="2"
+                    strokeDasharray="5 3"
+                    points={tnPointsStr}
                   />
-                  <text
-                    x={getX(be)}
-                    y={zeroY - 8}
-                    fill="#10b981"
-                    fontSize="9"
-                    textAnchor="middle"
-                    fontFamily="monospace"
-                    fontWeight="bold"
-                  >
-                    BE ₹{be}
-                  </text>
-                </g>
-              ))}
+                )}
 
-              {/* X Axis Labels */}
-              <text
-                x={getX(minPrice * 1.02)}
-                y={svgHeight - padding.bottom + 16}
-                fill="#64748b"
-                fontSize="10"
-                fontFamily="monospace"
-              >
-                ₹{minPrice.toFixed(0)}
-              </text>
-              <text
-                x={getX(maxPrice * 0.98)}
-                y={svgHeight - padding.bottom + 16}
-                fill="#64748b"
-                fontSize="10"
-                textAnchor="end"
-                fontFamily="monospace"
-              >
-                ₹{maxPrice.toFixed(0)}
-              </text>
-            </svg>
+                {/* Expiration Payoff Line */}
+                {expiryPointsStr && (
+                  <polyline
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth="2.5"
+                    points={expiryPointsStr}
+                  />
+                )}
+              </svg>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono mt-1 px-2">
-            <span>Left: Downside Bear Zone</span>
-            <span>Zero Crossing = Breakeven Threshold</span>
-            <span>Right: Upside Bull Zone</span>
+          {/* Breakeven Indicators Bar */}
+          <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400">Breakeven Points:</span>
+              <div className="flex gap-2">
+                {(payoff?.breakeven_points || []).map((be: number, i: number) => (
+                  <span key={i} className="px-2 py-0.5 bg-slate-800 rounded text-cyan-300 font-bold border border-slate-700">
+                    ₹{be.toFixed(1)}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400">Net Flow:</span>
+              <span
+                className={`font-bold px-2 py-0.5 rounded text-xs ${
+                  (payoff?.net_debit_credit || 0) >= 0
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                }`}
+              >
+                {(payoff?.net_debit_credit || 0) >= 0 ? 'NET CREDIT' : 'NET DEBIT'}: ₹{Math.abs(payoff?.net_debit_credit || 0).toLocaleString()}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Strategy Metrics & Risk Matrix (4 Cols) */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-            <h3 className="text-xs uppercase font-bold text-slate-400 tracking-wider font-mono">
-              Strategy Risk &amp; Reward Matrix
+        {/* Right Column: Quantitative Strategy Telemetry */}
+        <div className="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+          <div className="space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center justify-between pb-3 border-b border-slate-800">
+              <span>Strategy Scorecard</span>
+              <span className="text-xs font-mono text-cyan-400">1-CLICK PAPER DESK</span>
             </h3>
 
-            {/* Max Profit vs Max Loss */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/60">
-                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Max Profit</span>
-                <span className="text-base font-black text-emerald-400 font-mono">
-                  {payoff?.max_profit === 999999.0 ? 'Unlimited' : `₹${payoff?.max_profit.toFixed(0)}`}
+            {/* Probability of Profit (POP) Gauge */}
+            <div className="bg-gradient-to-r from-blue-900/20 via-cyan-900/20 to-blue-900/20 p-4 rounded-xl border border-blue-500/20">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs text-slate-300 font-semibold flex items-center gap-1">
+                  <Percent className="w-3.5 h-3.5 text-cyan-400" /> Probability of Profit (POP)
+                </span>
+                <span className="text-lg font-black font-mono text-emerald-400">
+                  {(payoff?.probability_of_profit_pct ?? 50).toFixed(1)}%
                 </span>
               </div>
-              <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/60">
-                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Max Loss</span>
-                <span className="text-base font-black text-rose-400 font-mono">
-                  {payoff?.max_loss === -999999.0 ? 'Unlimited' : `₹${Math.abs(payoff?.max_loss || 0).toFixed(0)}`}
-                </span>
-              </div>
-            </div>
-
-            {/* POP & Risk Reward */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/60">
-                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Probability of Profit</span>
-                <span className="text-xl font-black text-cyan-300 font-mono">
-                  {payoff?.probability_of_profit_pct || 50}%
-                </span>
-              </div>
-              <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/60">
-                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Risk/Reward</span>
-                <span className="text-xl font-black text-amber-300 font-mono">
-                  1:{payoff?.risk_reward_ratio || 1.5}
-                </span>
+              <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-blue-500 to-emerald-400 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${payoff?.probability_of_profit_pct || 50}%` }}
+                />
               </div>
             </div>
 
-            {/* Net Entry Premium */}
-            <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/60 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Net Entry Cashflow</span>
-                <span className="text-xs text-slate-400">
-                  {payoff && payoff.net_debit_credit >= 0 ? 'Net Credit Collected' : 'Net Debit Paid'}
+            {/* Max Profit / Max Loss Grid */}
+            <div className="grid grid-cols-2 gap-3 font-mono">
+              <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+                <span className="text-[10px] text-slate-400 block uppercase font-semibold">MAX PROFIT</span>
+                <span className="text-base font-bold text-emerald-400">
+                  {payoff?.max_profit === null || (payoff && payoff.max_profit > 1000000)
+                    ? 'Unlimited ∞'
+                    : `₹${payoff?.max_profit.toLocaleString()}`}
                 </span>
               </div>
-              <span className={`text-base font-black font-mono ${payoff && payoff.net_debit_credit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                ₹{Math.abs(payoff?.net_debit_credit || 0).toFixed(2)}
-              </span>
+              <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+                <span className="text-[10px] text-slate-400 block uppercase font-semibold">MAX LOSS</span>
+                <span className="text-base font-bold text-rose-400">
+                  {payoff?.max_loss === null || (payoff && payoff.max_loss > 1000000)
+                    ? 'Unlimited ∞'
+                    : `₹${payoff?.max_loss.toLocaleString()}`}
+                </span>
+              </div>
             </div>
 
             {/* Net Portfolio Greeks */}
@@ -524,13 +592,13 @@ export const OptionsStrategyBuilderView: React.FC<Props> = ({
               </div>
             </div>
 
-            {/* 1-Click Paper Trade Button */}
+            {/* 1-Click Paper Trade Basket Button */}
             <button
               onClick={handleSimulateExecution}
               className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 transition-all"
             >
-              <Zap className="w-4 h-4" />
-              Execute Strategy Basket in Paper Account
+              <Zap className="w-4 h-4 fill-current" />
+              <span>Execute Strategy Basket in Paper Account</span>
             </button>
           </div>
         </div>
@@ -599,10 +667,10 @@ export const OptionsStrategyBuilderView: React.FC<Props> = ({
                   <td className="py-2.5 px-3">
                     <input
                       type="number"
-                      step={50}
+                      step={activeAsset.step}
                       value={leg.strike}
-                      onChange={(e) => handleLegChange(idx, 'strike', parseFloat(e.target.value) || 0)}
-                      className="w-28 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white font-bold"
+                      onChange={(e) => handleLegChange(idx, 'strike', parseFloat(e.target.value) || spotPrice)}
+                      className="w-24 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white font-bold text-xs"
                     />
                   </td>
 
@@ -610,10 +678,10 @@ export const OptionsStrategyBuilderView: React.FC<Props> = ({
                   <td className="py-2.5 px-3">
                     <input
                       type="number"
-                      step={1}
+                      step="0.05"
                       value={leg.premium}
                       onChange={(e) => handleLegChange(idx, 'premium', parseFloat(e.target.value) || 0)}
-                      className="w-24 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white font-bold"
+                      className="w-20 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white font-bold text-xs"
                     />
                   </td>
 
@@ -621,10 +689,10 @@ export const OptionsStrategyBuilderView: React.FC<Props> = ({
                   <td className="py-2.5 px-3">
                     <input
                       type="number"
-                      step={25}
+                      step={activeAsset.lotSize}
                       value={leg.quantity}
-                      onChange={(e) => handleLegChange(idx, 'quantity', parseInt(e.target.value) || 25)}
-                      className="w-20 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-slate-300"
+                      onChange={(e) => handleLegChange(idx, 'quantity', parseInt(e.target.value) || activeAsset.lotSize)}
+                      className="w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white font-bold text-xs"
                     />
                   </td>
 
@@ -632,21 +700,22 @@ export const OptionsStrategyBuilderView: React.FC<Props> = ({
                   <td className="py-2.5 px-3">
                     <input
                       type="number"
-                      step={0.01}
+                      step="0.01"
                       value={leg.iv}
-                      onChange={(e) => handleLegChange(idx, 'iv', parseFloat(e.target.value) || 0.14)}
-                      className="w-20 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-amber-300"
+                      onChange={(e) => handleLegChange(idx, 'iv', parseFloat(e.target.value) || 0.15)}
+                      className="w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white font-bold text-xs"
                     />
                   </td>
 
-                  {/* Delete Button */}
+                  {/* Delete Leg */}
                   <td className="py-2.5 px-3 text-center">
                     <button
                       onClick={() => handleRemoveLeg(idx)}
                       disabled={legs.length <= 1}
-                      className="p-1 rounded text-slate-500 hover:text-rose-400 disabled:opacity-30"
+                      className="p-1 rounded hover:bg-rose-500/20 text-rose-400 disabled:opacity-30 transition-all"
+                      title="Remove Leg"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </td>
                 </tr>
