@@ -994,6 +994,63 @@ class AutoAlertsStatsResponse(BaseModel):
     avg_profit_per_winning_trade: float
     recent_closed_alerts: List[AutoAlertItem]
 
+# --- HONEST RECOMMENDATION PERFORMANCE AUDIT SCHEMAS ---
+class EquityCurvePoint(BaseModel):
+    trade_number: int
+    date_label: str
+    symbol: str
+    action_result: str
+    balance_inr: float
+    trade_pnl_net_inr: float
+
+class AuditComparisonItem(BaseModel):
+    audit_id: str
+    date_formatted: str
+    contract_display: str
+    asset_name: str
+    instrument_type: str
+    exchange: str = "NSE"
+    budget_tier: str
+    recommended_entry: float
+    recommended_target_1: float
+    recommended_target_2: float
+    recommended_stop_loss: float
+    actual_highest_reached: float
+    actual_lowest_reached: float
+    actual_exit_price: float
+    outcome: str # "TARGET_HIT", "STOP_LOSS_HIT", "EXPIRED"
+    outcome_badge: str # "🎯 WIN (+X%)", "🛑 LOSS (-Y%)", "⏱️ EXPIRED"
+    gross_pnl_inr: float
+    brokerage_and_charges_inr: float = 25.0
+    net_pnl_inr: float
+    pnl_percentage: float
+    time_taken_minutes: int
+    benchmark_symbol: str = "NIFTY 50"
+    benchmark_return_pct: float
+    alpha_pct: float
+    plain_english_verdict: str
+
+class AuditSummaryResponse(BaseModel):
+    timestamp: str
+    total_calls_audited: int
+    winning_calls: int
+    losing_calls: int
+    expired_calls: int
+    win_rate_pct: float
+    total_gross_profit_inr: float
+    total_brokerage_inr: float
+    total_net_profit_inr: float
+    average_win_inr: float
+    average_loss_inr: float
+    profit_factor: float
+    max_drawdown_pct: float
+    avg_alpha_over_nifty_pct: float
+    starting_capital_inr: float
+    current_simulated_capital_inr: float
+    capital_growth_pct: float
+    equity_curve: List[EquityCurvePoint]
+    comparison_items: List[AuditComparisonItem]
+
 
 
 

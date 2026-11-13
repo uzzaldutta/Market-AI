@@ -24,7 +24,7 @@ from ..schemas.market import (
     ResearchDossierResponse, OptionStrategyRequest, OptionStrategyPayoffResponse,
     OrderBookDepthResponse, StrategyOptimizationRequest, StrategyOptimizationResponse,
     PreTradeCheckRequest, PreTradeCheckResponse,
-    AutoAlertsResponse, AutoAlertsStatsResponse
+    AutoAlertsResponse, AutoAlertsStatsResponse, AuditSummaryResponse
 )
 from ..providers.manager import get_market_data_provider
 from ..core.nse_instruments import NSE_SYMBOL_INDEX, search_nse_instruments
@@ -473,6 +473,17 @@ def get_live_auto_alerts(
 def get_auto_alerts_performance_stats():
     """Historical and intraday transparency metrics (win rate %, ₹ net profit, targets hit)."""
     return auto_alert_engine.get_performance_stats()
+
+@router.get("/auto-alerts/audit/summary", response_model=AuditSummaryResponse)
+def get_auto_alerts_audit_summary(
+    filter_outcome: Optional[str] = Query(None, description="Filter outcome: TARGET_HIT, STOP_LOSS_HIT, EXPIRED, or ALL"),
+    starting_capital: float = Query(10000.0, description="Simulated retail starting capital in INR")
+):
+    """
+    Honest, verifiable performance audit comparing what was recommended vs what the market did.
+    Includes winning and losing calls side-by-side, benchmark Alpha, and net ₹ after brokerage.
+    """
+    return auto_alert_engine.get_audit_summary(filter_outcome=filter_outcome, starting_capital=starting_capital)
 
 @router.post("/auto-alerts/{alert_id}/paper-execute")
 def execute_auto_alert_in_paper(

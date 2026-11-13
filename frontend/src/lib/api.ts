@@ -13,7 +13,8 @@ import {
   GlobalIndexDetail,
   GlobalIndexChatResponse,
   AutoAlertsResponse,
-  AutoAlertsStatsResponse
+  AutoAlertsStatsResponse,
+  AuditSummaryResponse
 } from '../types/market';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -365,6 +366,17 @@ export async function executeAutoAlertInPaper(alertId: string, lots = 1): Promis
   if (!res.ok) throw new Error('Failed to execute auto alert in paper account');
   return res.json();
 }
+
+export async function fetchAutoAlertsAuditSummary(filterOutcome?: string, startingCapital = 10000): Promise<AuditSummaryResponse> {
+  let url = `${API_BASE}/auto-alerts/audit/summary?starting_capital=${startingCapital}`;
+  if (filterOutcome && filterOutcome !== 'ALL') {
+    url += `&filter_outcome=${filterOutcome}`;
+  }
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch recommendation performance audit summary');
+  return res.json();
+}
+
 
 
 

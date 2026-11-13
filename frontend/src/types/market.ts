@@ -840,6 +840,66 @@ export interface AutoAlertsStatsResponse {
   recent_closed_alerts: AutoAlertItem[];
 }
 
+export interface EquityCurvePoint {
+  trade_number: number;
+  date_label: string;
+  symbol: string;
+  action_result: string;
+  balance_inr: number;
+  trade_pnl_net_inr: number;
+}
+
+export interface AuditComparisonItem {
+  audit_id: string;
+  date_formatted: string;
+  contract_display: string;
+  asset_name: string;
+  instrument_type: string;
+  exchange: string;
+  budget_tier: string;
+  recommended_entry: number;
+  recommended_target_1: number;
+  recommended_target_2: number;
+  recommended_stop_loss: number;
+  actual_highest_reached: number;
+  actual_lowest_reached: number;
+  actual_exit_price: number;
+  outcome: 'TARGET_HIT' | 'STOP_LOSS_HIT' | 'EXPIRED' | string;
+  outcome_badge: string;
+  gross_pnl_inr: number;
+  brokerage_and_charges_inr: number;
+  net_pnl_inr: number;
+  pnl_percentage: number;
+  time_taken_minutes: number;
+  benchmark_symbol: string;
+  benchmark_return_pct: number;
+  alpha_pct: number;
+  plain_english_verdict: string;
+}
+
+export interface AuditSummaryResponse {
+  timestamp: string;
+  total_calls_audited: number;
+  winning_calls: number;
+  losing_calls: number;
+  expired_calls: number;
+  win_rate_pct: number;
+  total_gross_profit_inr: number;
+  total_brokerage_inr: number;
+  total_net_profit_inr: number;
+  average_win_inr: number;
+  average_loss_inr: number;
+  profit_factor: number;
+  max_drawdown_pct: number;
+  avg_alpha_over_nifty_pct: number;
+  starting_capital_inr: number;
+  current_simulated_capital_inr: number;
+  capital_growth_pct: number;
+  equity_curve: EquityCurvePoint[];
+  comparison_items: AuditComparisonItem[];
+}
+
+
 
 
 
