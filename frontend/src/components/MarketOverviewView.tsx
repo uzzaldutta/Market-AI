@@ -57,8 +57,23 @@ export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) =>
 
   if (!data) {
     return (
-      <div className="p-8 text-center text-gray-500 font-mono animate-pulse">
-        Fetching Indian Market Overview & Sector Telemetry...
+      <div className="p-12 text-center rounded-2xl bg-terminal-surface border border-terminal-border/80 max-w-xl mx-auto mt-8 space-y-4 shadow-xl">
+        <div className="flex items-center justify-center gap-3 text-blue-400 font-mono text-base font-semibold">
+          <Activity className="w-5 h-5 animate-spin" />
+          <span>Connecting to Indian Market Engine...</span>
+        </div>
+        <p className="text-xs text-gray-400 leading-relaxed font-sans">
+          The cloud backend is establishing live telemetric feed with NSE and global indices.
+          If the free cloud instance is waking up from idle mode, this can take 20–30 seconds.
+        </p>
+        <div className="pt-2">
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-mono font-medium transition-all shadow-md active:scale-95"
+          >
+            Refresh Feed Now
+          </button>
+        </div>
       </div>
     );
   }

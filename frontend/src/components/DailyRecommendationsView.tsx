@@ -102,12 +102,14 @@ interface DailyRecommendationsData {
   recommendations: DailyRecommendation[];
 }
 
+import { placePaperOrder } from '../lib/api';
+
 interface Props {
   onSelectSymbol: (symbol: string) => void;
   onNavigateToPaper?: (symbol: string, side: 'BUY' | 'SELL', price: number) => void;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://market-ai-pf2c.onrender.com/api/v1';
 
 export const DailyRecommendationsView: React.FC<Props> = ({ onSelectSymbol, onNavigateToPaper }) => {
   const [data, setData] = useState<DailyRecommendationsData | null>(null);

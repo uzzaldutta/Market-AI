@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { fetchFastAlphaRadar } from '../lib/api';
+import { fetchFastAlphaRadar, placePaperOrder } from '../lib/api';
 import { PriceFlash } from './common/PriceFlash';
 import { useFavourites } from '../context/FavouritesContext';
 import { StockTimingAnalysisModal } from './StockTimingAnalysisModal';
@@ -111,26 +111,14 @@ export const FastAlphaRadarView: React.FC<Props> = ({ onSelectSymbol }) => {
     };
 
     try {
-      const res = await fetch('http://localhost:8000/api/v1/paper/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        setOrderStatus(`✅ Fast Alpha Filled! ${qty} units of ${orderModalSig.symbol} executed at ₹${orderModalSig.entry_price.toFixed(2)}.`);
-        setTimeout(() => {
-          setOrderModalSig(null);
-          setOrderStatus(null);
-        }, 1800);
-      } else {
-        setOrderStatus('Simulated order recorded into virtual trading ledger.');
-        setTimeout(() => {
-          setOrderModalSig(null);
-          setOrderStatus(null);
-        }, 1500);
-      }
-    } catch (e) {
-      setOrderStatus('Simulated order dispatched into virtual trading ledger.');
+      await placePaperOrder(payload);
+      setOrderStatus(`✅ Fast Alpha Filled! ${qty} units of ${orderModalSig.symbol} executed at ₹${orderModalSig.entry_price.toFixed(2)}.`);
+      setTimeout(() => {
+        setOrderModalSig(null);
+        setOrderStatus(null);
+      }, 1800);
+    } catch {
+      setOrderStatus('Simulated order recorded into virtual trading ledger.');
       setTimeout(() => {
         setOrderModalSig(null);
         setOrderStatus(null);

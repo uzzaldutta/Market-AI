@@ -37,22 +37,33 @@ export default function TerminalHome() {
   const [toastAlert, setToastAlert] = useState<AutoAlertItem | null>(null);
   const [toastDismissedId, setToastDismissedId] = useState<string | null>(null);
 
-  // Poll overview every 15 seconds
+  // Fast cold-start recovery + continuous 15s polling
   useEffect(() => {
     let isMounted = true;
+    let retryTimer: NodeJS.Timeout | null = null;
+
     async function loadOverview() {
       try {
         const data = await fetchMarketOverview();
-        if (isMounted) setOverviewData(data);
+        if (isMounted && data) {
+          setOverviewData(data);
+        }
       } catch (e) {
-        console.error('Error fetching market overview:', e);
+        console.error('Initial fetch / cold start waking...', e);
+        // Retry every 3 seconds until server wakes up
+        if (isMounted) {
+          retryTimer = setTimeout(loadOverview, 3000);
+        }
       }
     }
+
     loadOverview();
-    const timer = setInterval(loadOverview, 15000);
+    const intervalTimer = setInterval(loadOverview, 15000);
+
     return () => {
       isMounted = false;
-      clearInterval(timer);
+      clearInterval(intervalTimer);
+      if (retryTimer) clearTimeout(retryTimer);
     };
   }, []);
 
