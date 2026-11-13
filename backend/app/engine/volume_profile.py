@@ -142,22 +142,25 @@ class VolumeProfileEngine:
         if df.empty or len(df) < 5:
             return {"anchored_series": {}}
 
-        closes = df['close'].values
-        highs = df['high'].values
-        lows = df['low'].values
-        volumes = df['volume'].values
+        # Clean NaN or zero values
+        clean_df = df.dropna(subset=['close', 'high', 'low', 'volume']).copy()
+        clean_df = clean_df[(clean_df['close'] > 0) & (clean_df['high'] > 0) & (clean_df['low'] > 0)]
+        if len(clean_df) < 5:
+            return {"anchored_series": {}}
+
+        closes = clean_df['close'].values.astype(float)
+        highs = clean_df['high'].values.astype(float)
+        lows = clean_df['low'].values.astype(float)
+        volumes = clean_df['volume'].values.astype(float)
         typical_prices = (highs + lows + closes) / 3.0
 
-        n = len(df)
+        n = len(clean_df)
 
         # Detect structural anchors if not specified
-        # 1. Start of sequence (Session / Month Anchor)
-        # 2. Local Swing High Anchor (Peak in last 30 bars)
-        # 3. Local Swing Low Anchor (Trough in last 30 bars)
         lookback = min(30, n - 1)
         recent_window = typical_prices[-lookback:]
-        high_offset = int(np.argmax(recent_window))
-        low_offset = int(np.argmin(recent_window))
+        high_offset = int(np.nanargmax(recent_window))
+        low_offset = int(np.nanargmin(recent_window))
 
         high_anchor_idx = (n - lookback) + high_offset
         low_anchor_idx = (n - lookback) + low_offset

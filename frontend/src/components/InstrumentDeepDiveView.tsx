@@ -21,47 +21,79 @@ export const InstrumentDeepDiveView: React.FC<Props> = ({ symbol }) => {
 
   useEffect(() => {
     let isMounted = true;
+    let retryTimer: NodeJS.Timeout | null = null;
+
     async function loadData() {
       try {
-        const [q, c, ind, vp, av] = await Promise.all([
-          fetchQuote(symbol),
+        // Load quote first
+        const q = await fetchQuote(symbol);
+        if (isMounted && q) {
+          setQuote(q);
+        }
+
+        // Concurrently fetch supplementary technical datasets
+        const [cRes, indRes, vpRes, avRes] = await Promise.allSettled([
           fetchCandles(symbol, timeframe, 60),
           fetchIndicators(symbol, timeframe),
-          fetchVolumeProfile(symbol, timeframe).catch(() => null),
-          fetchAnchoredVWAP(symbol, timeframe).catch(() => null)
+          fetchVolumeProfile(symbol, timeframe),
+          fetchAnchoredVWAP(symbol, timeframe)
         ]);
+
         if (isMounted) {
-          setQuote(q);
-          setCandles(c);
-          setIndicators(ind);
-          if (vp) setVolumeProfile(vp);
-          if (av) setAnchoredVwap(av);
+          if (cRes.status === 'fulfilled' && cRes.value) {
+            const valid = cRes.value.filter(bar => bar && bar.open != null && bar.close != null && bar.high != null && bar.low != null);
+            setCandles(valid);
+          }
+          if (indRes.status === 'fulfilled' && indRes.value) setIndicators(indRes.value);
+          if (vpRes.status === 'fulfilled' && vpRes.value) setVolumeProfile(vpRes.value);
+          if (avRes.status === 'fulfilled' && avRes.value) setAnchoredVwap(avRes.value);
+          setLoading(false);
         }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        if (isMounted) setLoading(false);
+      } catch (e: any) {
+        console.error('Error loading deep dive for ' + symbol + ':', e);
+        // If quote is not yet loaded, retry every 3s (e.g. waking up Render instance)
+        if (isMounted && !quote) {
+          retryTimer = setTimeout(loadData, 3000);
+        }
       }
     }
+
+    setLoading(true);
     loadData();
+
     // 6-second polling for live tick updates
     const timer = setInterval(async () => {
       try {
         const q = await fetchQuote(symbol);
-        if (isMounted) setQuote(q);
+        if (isMounted && q) setQuote(q);
       } catch (err) {}
     }, 6000);
 
     return () => {
       isMounted = false;
       clearInterval(timer);
+      if (retryTimer) clearTimeout(retryTimer);
     };
   }, [symbol, timeframe]);
 
-  if (loading && !quote) {
+  if (!quote) {
     return (
-      <div className="p-8 text-center text-gray-500 font-mono animate-pulse">
-        Loading Technical Deep-Dive for {symbol}...
+      <div className="p-12 text-center rounded-2xl bg-terminal-surface border border-terminal-border/80 max-w-xl mx-auto mt-8 space-y-4 shadow-xl">
+        <div className="flex items-center justify-center gap-3 text-blue-400 font-mono text-base font-semibold">
+          <Activity className="w-5 h-5 animate-spin" />
+          <span>Synchronizing Telemetry for {symbol}...</span>
+        </div>
+        <p className="text-xs text-gray-400 leading-relaxed font-sans">
+          Connecting to National Stock Exchange data feed. If the cloud instance is waking up from idle mode, this takes 20–30 seconds.
+        </p>
+        <div className="pt-2">
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-mono font-medium transition-all shadow-md active:scale-95"
+          >
+            Retry Connection
+          </button>
+        </div>
       </div>
     );
   }
@@ -70,20 +102,27 @@ export const InstrumentDeepDiveView: React.FC<Props> = ({ symbol }) => {
 
   // Simple clean SVG Candlestick renderer for zero external bundle lock
   const renderCandlestickChart = () => {
-    if (!candles.length) return null;
+    const validCandles = (candles || []).filter(c => c && c.open != null && c.close != null && c.high != null && c.low != null && c.high > 0 && c.low > 0);
+    if (!validCandles.length) {
+      return (
+        <div className="h-60 flex items-center justify-center text-gray-500 font-mono text-xs">
+          Calculating candlestick series and intraday profile...
+        </div>
+      );
+    }
     const height = 240;
     const width = 800;
     const padding = 20;
 
-    const prices = candles.flatMap(c => [c.high, c.low]);
+    const prices = validCandles.flatMap(c => [c.high, c.low]);
     const minP = Math.min(...prices) * 0.998;
     const maxP = Math.max(...prices) * 1.002;
     const range = maxP - minP || 1;
 
     const scaleY = (p: number) => height - padding - ((p - minP) / range) * (height - 2 * padding);
-    const stepX = (width - 2 * padding) / candles.length;
+    const stepX = (width - 2 * padding) / validCandles.length;
 
-    const lastCandle = candles[candles.length - 1];
+    const lastCandle = validCandles[validCandles.length - 1];
     const liveLtp = quote?.ltp ?? lastCandle.close;
     const liveLtpY = scaleY(liveLtp);
     const isLiveUp = lastCandle.close >= lastCandle.open;
@@ -106,7 +145,7 @@ export const InstrumentDeepDiveView: React.FC<Props> = ({ symbol }) => {
         })}
 
         {/* Candles */}
-        {candles.map((c, i) => {
+        {validCandles.map((c, i) => {
           const x = padding + i * stepX + stepX / 2;
           const openY = scaleY(c.open);
           const closeY = scaleY(c.close);

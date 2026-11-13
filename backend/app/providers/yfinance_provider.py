@@ -7,6 +7,8 @@ automatic fallback to Synthetic fixtures when network/credentials are unavailabl
 from typing import List, Dict, Optional, Any
 from datetime import datetime
 import time
+import math
+import pandas as pd
 import yfinance as yf
 from .base import BaseMarketDataProvider
 from .synthetic import SyntheticFixtureProvider
@@ -187,20 +189,33 @@ class YFinanceNSEProvider(BaseMarketDataProvider):
             if df.empty:
                 return self.fallback.get_candles(clean, timeframe, count)
                 
+            # Filter out null or NaN rows from live feed
+            df = df.dropna(subset=["Open", "High", "Low", "Close"])
+            df = df[(df["Open"] > 0) & (df["High"] > 0) & (df["Low"] > 0) & (df["Close"] > 0)]
+            if df.empty:
+                return self.fallback.get_candles(clean, timeframe, count)
+
             candles = []
             for idx, row in df.tail(count).iterrows():
+                o = float(row["Open"])
+                h = float(row["High"])
+                l = float(row["Low"])
+                c = float(row["Close"])
+                v = int(row["Volume"]) if not pd.isna(row["Volume"]) else 0
+                if any(pd.isna([o, h, l, c])) or any(math.isnan(x) for x in [o, h, l, c]):
+                    continue
                 # Formatted timestamp
                 ts_str = idx.strftime("%Y-%m-%d %H:%M" if interval != "1d" else "%Y-%m-%d")
                 candles.append({
                     "timestamp": ts_str,
-                    "open": round(float(row["Open"]), 2),
-                    "high": round(float(row["High"]), 2),
-                    "low": round(float(row["Low"]), 2),
-                    "close": round(float(row["Close"]), 2),
-                    "volume": int(row["Volume"]),
-                    "vwap": round(float((row["Open"] + row["High"] + row["Low"] + row["Close"]) / 4.0), 2)
+                    "open": round(o, 2),
+                    "high": round(h, 2),
+                    "low": round(l, 2),
+                    "close": round(c, 2),
+                    "volume": v,
+                    "vwap": round((o + h + l + c) / 4.0, 2)
                 })
-            return candles
+            return candles if len(candles) >= 5 else self.fallback.get_candles(clean, timeframe, count)
         except Exception:
             return self.fallback.get_candles(clean, timeframe, count)
 
