@@ -9,7 +9,9 @@ import {
   SignalData,
   ScreenerRow,
   PaperAccount,
-  NewsItem
+  NewsItem,
+  GlobalIndexDetail,
+  GlobalIndexChatResponse
 } from '../types/market';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -203,6 +205,22 @@ export async function fetchStockTimingAnalysis(symbol: string, timeframe = '15m'
 export async function fetchGlobalIndices(): Promise<any> {
   const res = await fetch(`${API_BASE}/global-indices`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch global indices');
+  return res.json();
+}
+
+export async function fetchGlobalIndexDetail(symbol: string, timeframe: string = '1D'): Promise<GlobalIndexDetail> {
+  const res = await fetch(`${API_BASE}/global-indices/${encodeURIComponent(symbol)}/detail?timeframe=${encodeURIComponent(timeframe)}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch global index detail for ${symbol}`);
+  return res.json();
+}
+
+export async function chatGlobalIndex(symbol: string, message: string): Promise<GlobalIndexChatResponse> {
+  const res = await fetch(`${API_BASE}/global-indices/${encodeURIComponent(symbol)}/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message })
+  });
+  if (!res.ok) throw new Error(`Failed to chat for global index ${symbol}`);
   return res.json();
 }
 

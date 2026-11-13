@@ -385,6 +385,51 @@ export interface GlobalIndicesData {
   };
 }
 
+export interface GlobalIndexDetail {
+  symbol: string;
+  name: string;
+  region: string;
+  category: string;
+  flag: string;
+  currency: string;
+  ltp: number;
+  prev_close: number;
+  open_price: number;
+  high: number;
+  low: number;
+  change: number;
+  change_pct: number;
+  week_52_high: number;
+  week_52_low: number;
+  market_status: string;
+  exchange_name: string;
+  trading_hours_ist: string;
+  timeframe: '1D' | '5D' | '1M' | '1Y';
+  candles: Candle[];
+  nifty_correlation: number;
+  banknifty_correlation: number;
+  impact_on_india: string;
+  correlated_indian_sectors: string[];
+  key_levels: {
+    pivot: number;
+    resistance_1: number;
+    resistance_2: number;
+    support_1: number;
+    support_2: number;
+    ema_20: number;
+    sma_50: number;
+  };
+  rsi_14: number;
+  institutional_briefing: string;
+  suggested_prompts: string[];
+}
+
+export interface GlobalIndexChatResponse {
+  symbol: string;
+  reply: string;
+  timestamp: string;
+}
+
 export interface InversionCheckItem {
   check_name: string;
   passed: boolean;

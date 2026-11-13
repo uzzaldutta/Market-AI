@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { fetchGlobalIndices } from '../../lib/api';
 import { GlobalIndicesData, GlobalIndexItem } from '../../types/market';
+import { GlobalIndexModal } from './GlobalIndexModal';
 import {
   Globe,
   TrendingUp,
@@ -14,11 +15,13 @@ import {
 
 interface Props {
   onSelectSymbol?: (symbol: string) => void;
+  onSelectGlobalSymbol?: (symbol: string) => void;
 }
 
-export const GlobalTickerBar: React.FC<Props> = ({ onSelectSymbol }) => {
+export const GlobalTickerBar: React.FC<Props> = ({ onSelectSymbol, onSelectGlobalSymbol }) => {
   const [data, setData] = useState<GlobalIndicesData | null>(null);
   const [flashStates, setFlashStates] = useState<Record<string, 'UP' | 'DOWN' | null>>({});
+  const [activeGlobalModal, setActiveGlobalModal] = useState<string | null>(null);
   const prevPricesRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
@@ -55,7 +58,7 @@ export const GlobalTickerBar: React.FC<Props> = ({ onSelectSymbol }) => {
     }
 
     loadGlobalCues();
-    const timer = setInterval(loadGlobalCues, 8000); // 8-second refresh
+    const timer = setInterval(loadGlobalCues, 3500); // 3.5-second live real-time tick streaming
     return () => {
       isMounted = false;
       clearInterval(timer);
@@ -152,7 +155,10 @@ export const GlobalTickerBar: React.FC<Props> = ({ onSelectSymbol }) => {
             return (
               <div
                 key={`${item.symbol}-${index}`}
-                onClick={() => onSelectSymbol?.(item.symbol)}
+                onClick={() => {
+                  setActiveGlobalModal(item.symbol);
+                  onSelectGlobalSymbol?.(item.symbol);
+                }}
                 className={`flex items-center space-x-2 px-3 py-1 rounded-xl bg-slate-900/80 border transition-all duration-300 flex-shrink-0 select-none shadow-sm ${
                   flash === 'UP'
                     ? 'flash-up-glow border-emerald-500/80'
@@ -202,6 +208,15 @@ export const GlobalTickerBar: React.FC<Props> = ({ onSelectSymbol }) => {
           })}
         </div>
       </div>
+
+      {/* 3. Global Index Inspection Modal */}
+      {activeGlobalModal && (
+        <GlobalIndexModal
+          symbol={activeGlobalModal}
+          onClose={() => setActiveGlobalModal(null)}
+          onSelectIndianStock={onSelectSymbol}
+        />
+      )}
     </div>
   );
 };

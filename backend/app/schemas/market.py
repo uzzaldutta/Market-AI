@@ -569,6 +569,45 @@ class GlobalIndicesResponse(BaseModel):
     indices: List[GlobalIndexItem]
     categories: Dict[str, List[GlobalIndexItem]]
 
+class GlobalIndexDetailResponse(BaseModel):
+    symbol: str
+    name: str
+    region: str
+    category: str
+    flag: str
+    currency: str
+    ltp: float
+    prev_close: float
+    open_price: float
+    high: float
+    low: float
+    change: float
+    change_pct: float
+    week_52_high: float
+    week_52_low: float
+    market_status: str
+    exchange_name: str
+    trading_hours_ist: str
+    timeframe: str
+    candles: List[CandleItem]
+    nifty_correlation: float
+    banknifty_correlation: float
+    impact_on_india: str
+    correlated_indian_sectors: List[str]
+    key_levels: Dict[str, float]
+    rsi_14: float
+    institutional_briefing: str
+    suggested_prompts: List[str]
+
+class GlobalIndexChatRequest(BaseModel):
+    message: str
+    history: Optional[List[Dict[str, str]]] = []
+
+class GlobalIndexChatResponse(BaseModel):
+    symbol: str
+    reply: str
+    timestamp: str
+
 # --- ORACLE AI LEGENDARY VALUATION SCHEMAS ---
 class InversionCheckItem(BaseModel):
     check_name: str

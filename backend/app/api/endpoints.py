@@ -16,7 +16,8 @@ from ..schemas.market import (
     GEXProfileResponse, VolumeProfileResponse,
     KellySizingRequest, KellySizingResponse,
     FastAlphaRadarResponse, StockTimingAnalysisResponse,
-    GlobalIndicesResponse, OracleValuationResponse,
+    GlobalIndicesResponse, GlobalIndexDetailResponse, GlobalIndexChatRequest, GlobalIndexChatResponse,
+    OracleValuationResponse,
     CopilotQueryRequest, CopilotQueryResponse,
     StockDuelResponse, BlockDealsResponse,
     AlertsFeedResponse, WebhookTestRequest, WebhookTestResponse,
@@ -357,6 +358,27 @@ def get_global_indices():
     - Commodities & Currencies: Brent Crude, WTI Crude, USD/INR, DXY Dollar Index, Gold, Silver, Yields
     """
     return global_markets_engine.get_global_indices()
+
+@router.get("/global-indices/{symbol}/detail", response_model=GlobalIndexDetailResponse)
+def get_global_index_detail(symbol: str, timeframe: str = Query("1D", pattern="^(1D|5D|1M|1Y)$")):
+    """
+    High-Resolution Global Index & Commodity Inspection:
+    - Multi-timeframe historical candles (1D 5m, 5D 15m, 1M Daily, 1Y Weekly)
+    - Dalal Street NIFTY / BANK NIFTY correlation coefficients
+    - Affected Indian equities and sector sensitivity
+    - 20 EMA, 50 SMA, RSI(14), and Pivot level bounds
+    - Institutional macro hedge fund debrief
+    """
+    return global_markets_engine.get_global_index_detail(symbol=symbol, timeframe=timeframe)
+
+@router.post("/global-indices/{symbol}/chat", response_model=GlobalIndexChatResponse)
+def chat_global_index(symbol: str, req: GlobalIndexChatRequest):
+    """
+    Autonomous Global Macro Copilot Chat:
+    Answers interactive queries about global asset momentum, key resistance/support,
+    and macroeconomic transmission to Indian markets and corporate balance sheets.
+    """
+    return global_markets_engine.chat_global_index(symbol=symbol, message=req.message, history=req.history)
 
 @router.get("/oracle/analyze/{symbol}", response_model=OracleValuationResponse)
 def get_oracle_valuation(

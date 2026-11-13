@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { MarketOverviewData, Quote, GlobalIndicesData } from '../types/market';
 import { useFavourites } from '../context/FavouritesContext';
 import { PriceFlash } from './common/PriceFlash';
+import { GlobalIndexModal } from './common/GlobalIndexModal';
 import { fetchParticipantFlows, fetchSectorRotationMatrix, fetchGlobalIndices } from '../lib/api';
 import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Activity, BarChart2, Star, Sparkles, ShieldAlert, Layers, Compass, Globe, DollarSign } from 'lucide-react';
 
@@ -18,6 +19,7 @@ export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) =>
   const [sectorRotation, setSectorRotation] = useState<any | null>(null);
   const [globalData, setGlobalData] = useState<GlobalIndicesData | null>(null);
   const [globalCategory, setGlobalCategory] = useState<string>('ALL');
+  const [selectedGlobalSymbol, setSelectedGlobalSymbol] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -37,9 +39,19 @@ export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) =>
     }
     loadQuantTelemetry();
     const timer = setInterval(loadQuantTelemetry, 15000);
+
+    // Fast 3.5s real-time tick streaming for global indices & commodities
+    const globalTimer = setInterval(async () => {
+      try {
+        const g = await fetchGlobalIndices();
+        if (isMounted && g) setGlobalData(g);
+      } catch (err) {}
+    }, 3500);
+
     return () => {
       isMounted = false;
       clearInterval(timer);
+      clearInterval(globalTimer);
     };
   }, []);
 
@@ -404,7 +416,8 @@ export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) =>
                 return (
                   <div
                     key={item.symbol}
-                    className="p-3 rounded-xl bg-terminal-dark/80 border border-terminal-border/80 hover:border-cyan-500/40 transition-all shadow-sm space-y-2"
+                    onClick={() => setSelectedGlobalSymbol(item.symbol)}
+                    className="p-3 rounded-xl bg-terminal-dark/80 border border-terminal-border/80 hover:border-cyan-500 hover:scale-[1.01] cursor-pointer transition-all shadow-sm space-y-2 group"
                   >
                     <div className="flex items-center justify-between text-xs text-gray-400">
                       <div className="flex items-center space-x-1.5">
@@ -439,6 +452,15 @@ export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) =>
               })}
           </div>
         </div>
+      )}
+
+      {/* Global Index Inspection Modal */}
+      {selectedGlobalSymbol && (
+        <GlobalIndexModal
+          symbol={selectedGlobalSymbol}
+          onClose={() => setSelectedGlobalSymbol(null)}
+          onSelectIndianStock={onSelectSymbol}
+        />
       )}
 
       {/* 2. Sector Performance Heatmap */}
