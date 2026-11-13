@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { runBacktest } from '../lib/api';
-import { History, Play, CheckCircle2, TrendingUp, AlertCircle } from 'lucide-react';
+import { History, Play, CheckCircle2, TrendingUp, AlertCircle, Sliders } from 'lucide-react';
+import { StrategyOptimizerModal } from './StrategyOptimizerModal';
 
 export const BacktestLabView: React.FC = () => {
   const [symbol, setSymbol] = useState<string>('RELIANCE');
@@ -11,6 +12,7 @@ export const BacktestLabView: React.FC = () => {
   const [slippagePct, setSlippagePct] = useState<number>(0.0005);
   const [loading, setLoading] = useState<boolean>(false);
   const [result, setResult] = useState<any | null>(null);
+  const [isOptimizerOpen, setIsOptimizerOpen] = useState<boolean>(false);
 
   const handleRunBacktest = async () => {
     setLoading(true);
@@ -36,9 +38,18 @@ export const BacktestLabView: React.FC = () => {
     <div className="space-y-6">
       {/* 1. Configuration Panel */}
       <div className="p-5 rounded-xl bg-terminal-surface border border-terminal-border space-y-4">
-        <div className="flex items-center space-x-2 text-xs font-mono text-gray-400">
-          <History className="w-4 h-4 text-blue-400" />
-          <span>WALK-FORWARD STRATEGY BACKTESTING SIMULATOR</span>
+        <div className="flex items-center justify-between text-xs font-mono text-gray-400">
+          <div className="flex items-center space-x-2">
+            <History className="w-4 h-4 text-blue-400" />
+            <span>WALK-FORWARD STRATEGY BACKTESTING SIMULATOR</span>
+          </div>
+          <button
+            onClick={() => setIsOptimizerOpen(true)}
+            className="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 transition-all shadow-md"
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            <span>ML Auto-Optimizer</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -186,6 +197,13 @@ export const BacktestLabView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Autonomous Strategy Optimizer Modal */}
+      <StrategyOptimizerModal
+        isOpen={isOptimizerOpen}
+        onClose={() => setIsOptimizerOpen(false)}
+        defaultSymbol={symbol}
+      />
     </div>
   );
 };

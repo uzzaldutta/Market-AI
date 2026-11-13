@@ -731,6 +731,123 @@ class WebhookTestResponse(BaseModel):
     message: str
     payload_dispatched: Dict[str, Any]
 
+# --- INSTITUTIONAL RESEARCH DOSSIER SCHEMAS ---
+class PeerComparisonItem(BaseModel):
+    symbol: str
+    pe_ratio: float
+    pb_ratio: float
+    roe_pct: float
+    market_cap_cr: float
+
+class ResearchDossierResponse(BaseModel):
+    symbol: str
+    company_name: str
+    isin: str
+    sector: str
+    market_cap_cr: float
+    ltp: float
+    dcf_fair_value: float
+    margin_of_safety_pct: float
+    graham_number: float
+    verdict: str
+    investment_thesis: str
+    key_strengths: List[str]
+    key_risks: List[str]
+    pillar_scores: Dict[str, float]
+    peer_comparison: List[PeerComparisonItem]
+    analyst_rating: str
+    target_price: float
+    generated_at: str
+
+# --- OPTIONS STRATEGY BUILDER & PAYOFF SCHEMAS ---
+class OptionLeg(BaseModel):
+    strike: float
+    option_type: OptionType
+    side: OrderSide # BUY or SELL
+    quantity: int = 50
+    premium: float
+    iv: float = 0.20
+
+class OptionStrategyRequest(BaseModel):
+    symbol: str = "NIFTY50"
+    spot_price: float
+    days_to_expiry: int = 7
+    risk_free_rate: float = 0.07
+    legs: List[OptionLeg]
+    strategy_name: Optional[str] = "Custom Strategy"
+
+class StrategyPayoffPoint(BaseModel):
+    underlying_price: float
+    payoff_at_expiry: float
+    payoff_t_plus_n: float
+
+class OptionStrategyPayoffResponse(BaseModel):
+    strategy_name: str
+    spot_price: float
+    max_profit: float
+    max_loss: float
+    risk_reward_ratio: float
+    breakeven_points: List[float]
+    probability_of_profit_pct: float
+    net_delta: float
+    net_gamma: float
+    net_theta: float
+    net_vega: float
+    net_debit_credit: float
+    payoff_curve: List[StrategyPayoffPoint]
+    timestamp: str
+
+# --- INSTITUTIONAL LEVEL-3 ORDER BOOK DEPTH SCHEMAS ---
+class MarketDepthLevel(BaseModel):
+    price: float
+    quantity: int
+    orders: int
+    cumulative_qty: int
+    is_iceberg: bool = False
+
+class OrderBookDepthResponse(BaseModel):
+    symbol: str
+    ltp: float
+    spread: float
+    spread_pct: float
+    total_bid_qty: int
+    total_ask_qty: int
+    order_flow_imbalance: float # Between -1.0 (heavy sell) and +1.0 (heavy buy)
+    bids: List[MarketDepthLevel]
+    asks: List[MarketDepthLevel]
+    iceberg_detected: List[Dict[str, Any]]
+    timestamp: str
+
+# --- AUTONOMOUS STRATEGY AUTO-OPTIMIZER SCHEMAS ---
+class StrategyOptimizationRequest(BaseModel):
+    strategy_type: str = "EMA_MOMENTUM" # "EMA_MOMENTUM", "VWAP_REVERSION", "ORB_BREAKOUT"
+    symbol: str = "NIFTY50"
+    stop_loss_pct_range: List[float] = [1.0, 1.5, 2.0, 2.5, 3.0]
+    risk_reward_range: List[float] = [1.5, 2.0, 2.5, 3.0]
+    candle_limit: int = 150
+
+class OptimizationIterationResult(BaseModel):
+    stop_loss_pct: float
+    risk_reward: float
+    total_trades: int
+    win_rate_pct: float
+    profit_factor: float
+    sharpe_ratio: float
+    net_pnl: float
+    max_drawdown_pct: float
+
+class StrategyOptimizationResponse(BaseModel):
+    strategy_type: str
+    symbol: str
+    best_parameters: Dict[str, Any]
+    best_sharpe: float
+    best_win_rate: float
+    total_combinations_tested: int
+    results: List[OptimizationIterationResult]
+    recommendation: str
+    timestamp: str
+
+
 
 
 

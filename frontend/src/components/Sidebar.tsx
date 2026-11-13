@@ -18,7 +18,8 @@ import {
   MoreHorizontal,
   Bot,
   Swords,
-  Coins
+  Coins,
+  SlidersHorizontal
 } from 'lucide-react';
 
 export type TabType =
@@ -27,11 +28,13 @@ export type TabType =
   | 'oracle'
   | 'duel'
   | 'deals'
+  | 'depth'
   | 'radar'
   | 'recommendations'
   | 'screener'
   | 'instrument'
   | 'options'
+  | 'options-builder'
   | 'predictions'
   | 'backtest'
   | 'paper'
@@ -57,11 +60,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'oracle', label: '🧠 Oracle AI Lab (Buffett)', icon: Brain },
     { id: 'duel', label: '⚔️ Stock Duel (Compare)', icon: Swords },
     { id: 'deals', label: '🐳 Block Deals (> ₹5 Cr)', icon: Coins },
+    { id: 'depth', label: '📊 Level-3 Depth & Tape', icon: Activity },
     { id: 'radar', label: '⚡ Fast Alpha Radar', icon: Zap },
     { id: 'recommendations', label: 'AI Daily Recommendations', icon: Sparkles },
     { id: 'screener', label: 'Stock Screener', icon: Filter },
     { id: 'instrument', label: 'Technical Analysis', icon: TrendingUp },
     { id: 'options', label: 'F&O & Options Greeks', icon: Layers },
+    { id: 'options-builder', label: '📐 Strategy Payoff Builder', icon: SlidersHorizontal },
     { id: 'predictions', label: 'AI Predictions', icon: Cpu },
     { id: 'backtest', label: 'Backtesting Lab', icon: History },
     { id: 'paper', label: 'Paper Trading Simulator', icon: Wallet },

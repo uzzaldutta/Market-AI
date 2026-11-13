@@ -272,6 +272,39 @@ export async function testAlertWebhook(channel: string, destinationUrl?: string,
   return res.json();
 }
 
+export async function fetchEquityDossier(symbol: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/dossier/${symbol}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch research dossier for ${symbol}`);
+  return res.json();
+}
+
+export async function calculateStrategyPayoff(req: any): Promise<any> {
+  const res = await fetch(`${API_BASE}/options/strategy-payoff`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+  if (!res.ok) throw new Error('Failed to calculate options strategy payoff');
+  return res.json();
+}
+
+export async function fetchOrderBookDepth(symbol: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/orderbook/depth/${symbol}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch order book depth for ${symbol}`);
+  return res.json();
+}
+
+export async function optimizeStrategy(req: any): Promise<any> {
+  const res = await fetch(`${API_BASE}/backtest/optimize`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+  if (!res.ok) throw new Error('Failed to optimize strategy parameters');
+  return res.json();
+}
+
+
 
 
 

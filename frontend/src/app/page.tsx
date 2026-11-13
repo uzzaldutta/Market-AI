@@ -9,6 +9,8 @@ import { AICopilotView } from '../components/AICopilotView';
 import { OracleAILabView } from '../components/OracleAILabView';
 import { StockDuelView } from '../components/StockDuelView';
 import { BlockDealsView } from '../components/BlockDealsView';
+import { MarketDepthView } from '../components/MarketDepthView';
+import { OptionsStrategyBuilderView } from '../components/OptionsStrategyBuilderView';
 import { FastAlphaRadarView } from '../components/FastAlphaRadarView';
 import { DailyRecommendationsView } from '../components/DailyRecommendationsView';
 import { ScreenerView } from '../components/ScreenerView';
@@ -118,6 +120,21 @@ export default function TerminalHome() {
             {activeTab === 'deals' && (
               <BlockDealsView
                 onSelectSymbol={handleSelectSymbol}
+                onNavigateTab={(t) => setActiveTab(t as TabType)}
+              />
+            )}
+
+            {activeTab === 'depth' && (
+              <MarketDepthView
+                initialSymbol={selectedSymbol}
+                onSelectSymbol={handleSelectSymbol}
+                onNavigateTab={(t) => setActiveTab(t as TabType)}
+              />
+            )}
+
+            {activeTab === 'options-builder' && (
+              <OptionsStrategyBuilderView
+                initialSymbol={selectedSymbol}
                 onNavigateTab={(t) => setActiveTab(t as TabType)}
               />
             )}

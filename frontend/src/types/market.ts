@@ -539,6 +539,140 @@ export interface AlertsFeedResponse {
   alerts: MarketAlertItem[];
 }
 
+// --- RESEARCH DOSSIER SCHEMAS ---
+export interface PeerComparisonItem {
+  symbol: string;
+  pe_ratio: number;
+  pb_ratio: number;
+  roe_pct: number;
+  market_cap_cr: number;
+}
+
+export interface ResearchDossierResponse {
+  symbol: string;
+  company_name: string;
+  isin: string;
+  sector: string;
+  market_cap_cr: number;
+  ltp: number;
+  dcf_fair_value: number;
+  margin_of_safety_pct: number;
+  graham_number: number;
+  verdict: string;
+  investment_thesis: string;
+  key_strengths: string[];
+  key_risks: string[];
+  pillar_scores: Record<string, number>;
+  peer_comparison: PeerComparisonItem[];
+  analyst_rating: string;
+  target_price: number;
+  generated_at: string;
+}
+
+// --- OPTIONS STRATEGY BUILDER SCHEMAS ---
+export interface OptionLeg {
+  strike: number;
+  option_type: 'CE' | 'PE';
+  side: 'BUY' | 'SELL';
+  quantity: number;
+  premium: number;
+  iv: number;
+}
+
+export interface OptionStrategyRequest {
+  symbol: string;
+  spot_price: number;
+  days_to_expiry: number;
+  risk_free_rate?: number;
+  legs: OptionLeg[];
+  strategy_name?: string;
+}
+
+export interface StrategyPayoffPoint {
+  underlying_price: number;
+  payoff_at_expiry: number;
+  payoff_t_plus_n: number;
+}
+
+export interface OptionStrategyPayoffResponse {
+  strategy_name: string;
+  spot_price: number;
+  max_profit: number;
+  max_loss: number;
+  risk_reward_ratio: number;
+  breakeven_points: number[];
+  probability_of_profit_pct: number;
+  net_delta: number;
+  net_gamma: number;
+  net_theta: number;
+  net_vega: number;
+  net_debit_credit: number;
+  payoff_curve: StrategyPayoffPoint[];
+  timestamp: string;
+}
+
+// --- LEVEL-3 ORDER BOOK SCHEMAS ---
+export interface MarketDepthLevel {
+  price: number;
+  quantity: number;
+  orders: number;
+  cumulative_qty: number;
+  is_iceberg: boolean;
+}
+
+export interface OrderBookDepthResponse {
+  symbol: string;
+  ltp: number;
+  spread: number;
+  spread_pct: number;
+  total_bid_qty: number;
+  total_ask_qty: number;
+  order_flow_imbalance: number;
+  bids: MarketDepthLevel[];
+  asks: MarketDepthLevel[];
+  iceberg_detected: Array<{
+    side: string;
+    price: number;
+    quantity: number;
+    orders: number;
+    type: string;
+  }>;
+  timestamp: string;
+}
+
+// --- STRATEGY AUTO-OPTIMIZER SCHEMAS ---
+export interface StrategyOptimizationRequest {
+  strategy_type: string;
+  symbol: string;
+  stop_loss_pct_range: number[];
+  risk_reward_range: number[];
+  candle_limit?: number;
+}
+
+export interface OptimizationIterationResult {
+  stop_loss_pct: number;
+  risk_reward: number;
+  total_trades: number;
+  win_rate_pct: number;
+  profit_factor: number;
+  sharpe_ratio: number;
+  net_pnl: number;
+  max_drawdown_pct: number;
+}
+
+export interface StrategyOptimizationResponse {
+  strategy_type: string;
+  symbol: string;
+  best_parameters: Record<string, any>;
+  best_sharpe: number;
+  best_win_rate: number;
+  total_combinations_tested: number;
+  results: OptimizationIterationResult[];
+  recommendation: string;
+  timestamp: string;
+}
+
+
 
 
 

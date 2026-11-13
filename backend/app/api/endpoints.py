@@ -19,7 +19,9 @@ from ..schemas.market import (
     GlobalIndicesResponse, OracleValuationResponse,
     CopilotQueryRequest, CopilotQueryResponse,
     StockDuelResponse, BlockDealsResponse,
-    AlertsFeedResponse, WebhookTestRequest, WebhookTestResponse
+    AlertsFeedResponse, WebhookTestRequest, WebhookTestResponse,
+    ResearchDossierResponse, OptionStrategyRequest, OptionStrategyPayoffResponse,
+    OrderBookDepthResponse, StrategyOptimizationRequest, StrategyOptimizationResponse
 )
 from ..providers.manager import get_market_data_provider
 from ..core.nse_instruments import NSE_SYMBOL_INDEX, search_nse_instruments
@@ -45,6 +47,10 @@ from ..engine.copilot_engine import copilot_engine
 from ..engine.stock_duel import stock_duel_engine
 from ..engine.block_deals import block_deals_engine
 from ..engine.alerts_engine import alerts_engine
+from ..engine.dossier_engine import dossier_engine
+from ..engine.strategy_builder import strategy_builder_engine
+from ..engine.orderbook_engine import orderbook_depth_engine
+from ..engine.optimizer_engine import strategy_optimizer_engine
 
 router = APIRouter()
 
@@ -403,6 +409,26 @@ def test_webhook_dispatch(req: WebhookTestRequest):
         destination_url=req.destination_webhook_url,
         test_symbol=req.test_symbol or "RELIANCE"
     )
+
+@router.get("/dossier/{symbol}", response_model=ResearchDossierResponse)
+def get_equity_research_dossier(symbol: str):
+    """Generates an institutional 5-pillar research dossier with valuation, peer comparisons, and target price."""
+    return dossier_engine.generate_dossier(symbol=symbol)
+
+@router.post("/options/strategy-payoff", response_model=OptionStrategyPayoffResponse)
+def calculate_options_strategy_payoff(req: OptionStrategyRequest):
+    """Multi-leg options strategy simulator computing exact expiry payoff, T+n Greek curves, and POP."""
+    return strategy_builder_engine.calculate_strategy_payoff(req)
+
+@router.get("/orderbook/depth/{symbol}", response_model=OrderBookDepthResponse)
+def get_market_depth_and_icebergs(symbol: str):
+    """Institutional Level-3 order book ladder, cumulative depth curves, and iceberg order detection."""
+    return orderbook_depth_engine.get_order_book_depth(symbol=symbol)
+
+@router.post("/backtest/optimize", response_model=StrategyOptimizationResponse)
+def optimize_strategy_hyperparameters(req: StrategyOptimizationRequest):
+    """Autonomous parameter grid search finding the optimal Stop-Loss % and Risk-Reward ratio on historical data."""
+    return strategy_optimizer_engine.optimize_strategy(req)
 
 @router.get("/health")
 def get_health_status():

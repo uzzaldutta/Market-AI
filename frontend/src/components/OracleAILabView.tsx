@@ -21,8 +21,10 @@ import {
   DollarSign,
   ArrowRight,
   Award,
-  RefreshCw
+  RefreshCw,
+  FileText
 } from 'lucide-react';
+import { ResearchDossierModal } from './ResearchDossierModal';
 
 interface Props {
   onSelectSymbol?: (symbol: string) => void;
@@ -43,6 +45,7 @@ export const OracleAILabView: React.FC<Props> = ({ onSelectSymbol }) => {
   // Paper Trade Execution
   const [isExecuting, setIsExecuting] = useState<boolean>(false);
   const [executeSuccess, setExecuteSuccess] = useState<boolean>(false);
+  const [isDossierOpen, setIsDossierOpen] = useState<boolean>(false);
 
   // Presets for quick institutional testing
   const presets = [
@@ -385,21 +388,31 @@ export const OracleAILabView: React.FC<Props> = ({ onSelectSymbol }) => {
                 </span>
               </div>
 
-              {/* 1-Click Paper Execution Button */}
-              <button
-                onClick={handleExecutePaperOrder}
-                disabled={isExecuting}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono font-bold text-xs shadow-md shadow-emerald-900/40 flex items-center space-x-2 transition-all active:scale-95 disabled:opacity-50"
-              >
-                <Zap className="w-3.5 h-3.5" />
-                <span>
-                  {isExecuting
-                    ? 'Submitting...'
-                    : executeSuccess
-                    ? '✓ Paper Order Placed!'
-                    : `Execute Value Paper Trade @ ₹${data.ltp.toFixed(2)}`}
-                </span>
-              </button>
+              {/* Action Buttons: Dossier & Paper Execution */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setIsDossierOpen(true)}
+                  className="px-3 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 font-mono font-bold text-xs shadow-md flex items-center space-x-1.5 transition-all active:scale-95"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Research Dossier</span>
+                </button>
+
+                <button
+                  onClick={handleExecutePaperOrder}
+                  disabled={isExecuting}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono font-bold text-xs shadow-md shadow-emerald-900/40 flex items-center space-x-2 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>
+                    {isExecuting
+                      ? 'Submitting...'
+                      : executeSuccess
+                      ? '✓ Paper Order Placed!'
+                      : `Execute Value Paper Trade @ ₹${data.ltp.toFixed(2)}`}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -734,6 +747,13 @@ export const OracleAILabView: React.FC<Props> = ({ onSelectSymbol }) => {
           </div>
         </>
       ) : null}
+
+      {/* Printable Institutional Research Dossier Modal */}
+      <ResearchDossierModal
+        symbol={activeSymbol}
+        isOpen={isDossierOpen}
+        onClose={() => setIsDossierOpen(false)}
+      />
     </div>
   );
 };
