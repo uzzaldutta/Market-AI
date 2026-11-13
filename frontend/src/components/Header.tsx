@@ -5,6 +5,7 @@ import { Search, Sun, Moon, ShieldCheck, Activity, Clock, Menu, X, ArrowRight, S
 import { NSE_UNIVERSE } from '../types/nseUniverse';
 import { useFavourites } from '../context/FavouritesContext';
 import { AlertCenterModal } from './common/AlertCenterModal';
+import { TradeAlertNotificationBell } from './common/TradeAlertNotificationBell';
 
 interface HeaderProps {
   marketStatus: string;
@@ -241,6 +242,13 @@ export const Header: React.FC<HeaderProps> = ({
           <ShieldCheck className="w-3 h-3" />
           <span>RESEARCH &amp; PAPER TRADING</span>
         </div>
+
+        {/* Real-Time Retail Auto-Trade Signals Notification Bell */}
+        {onNavigateTab && (
+          <TradeAlertNotificationBell
+            onNavigateToSignals={() => onNavigateTab('auto-alerts')}
+          />
+        )}
 
         {/* Live Signal Alerts Center Bell */}
         <button

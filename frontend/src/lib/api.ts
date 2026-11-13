@@ -11,7 +11,9 @@ import {
   PaperAccount,
   NewsItem,
   GlobalIndexDetail,
-  GlobalIndexChatResponse
+  GlobalIndexChatResponse,
+  AutoAlertsResponse,
+  AutoAlertsStatsResponse
 } from '../types/market';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -335,6 +337,32 @@ export async function fetchPreTradeCheck(req: any): Promise<any> {
 export async function fetchDailyRecommendations(limit = 20): Promise<any> {
   const res = await fetch(`${API_BASE}/recommendations/daily?limit=${limit}`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch daily recommendations');
+  return res.json();
+}
+
+export async function fetchLiveAutoAlerts(budgetTier?: string, category?: string): Promise<AutoAlertsResponse> {
+  let url = `${API_BASE}/auto-alerts/live`;
+  const params = new URLSearchParams();
+  if (budgetTier && budgetTier !== 'ALL') params.append('budget_tier', budgetTier);
+  if (category && category !== 'ALL') params.append('category', category);
+  const qStr = params.toString();
+  if (qStr) url += `?${qStr}`;
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch live auto trade alerts');
+  return res.json();
+}
+
+export async function fetchAutoAlertsStats(): Promise<AutoAlertsStatsResponse> {
+  const res = await fetch(`${API_BASE}/auto-alerts/stats`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch auto alerts performance stats');
+  return res.json();
+}
+
+export async function executeAutoAlertInPaper(alertId: string, lots = 1): Promise<any> {
+  const res = await fetch(`${API_BASE}/auto-alerts/${alertId}/paper-execute?lots=${lots}`, {
+    method: 'POST'
+  });
+  if (!res.ok) throw new Error('Failed to execute auto alert in paper account');
   return res.json();
 }
 

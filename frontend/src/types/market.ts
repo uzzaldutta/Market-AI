@@ -785,6 +785,61 @@ export interface PreTradeCheckResponse {
   timestamp: string;
 }
 
+// --- RETAIL AUTO-ALERT & SIMPLE RECOMMENDATION TYPES ---
+export interface AutoAlertItem {
+  alert_id: string;
+  headline: string;
+  symbol: string;
+  exchange: 'NSE' | 'BSE' | string;
+  asset_name: string;
+  contract_display: string;
+  instrument_type: 'INDEX_OPTION' | 'STOCK_OPTION' | 'CASH_EQUITY' | string;
+  option_type?: 'CE' | 'PE' | null;
+  strike_price?: number | null;
+  expiry_date?: string | null;
+  action: 'BUY' | 'SELL';
+  budget_tier: 'UNDER_5K' | 'UNDER_10K' | 'UNDER_25K' | 'CASH_STOCK' | string;
+  capital_required_inr: number;
+  lot_size: number;
+  recommended_lots: number;
+  recommended_shares?: number | null;
+  entry_price_min: number;
+  entry_price_max: number;
+  current_price: number;
+  best_entry_time: string;
+  order_valid_till: string;
+  stop_loss_price: number;
+  target_1_price: number;
+  target_2_price: number;
+  max_loss_inr: number;
+  target_1_profit_inr: number;
+  target_2_profit_inr: number;
+  risk_reward_ratio: number;
+  win_probability_pct: number;
+  plain_english_reason: string;
+  status: 'IN_BUY_ZONE' | 'TRIGGERED' | 'TARGET_1_HIT' | 'TARGET_2_HIT' | 'STOPPED_OUT' | 'EXPIRED' | string;
+  time_horizon: 'INTRADAY' | 'SWING';
+  created_at: string;
+}
+
+export interface AutoAlertsResponse {
+  timestamp: string;
+  active_alerts: AutoAlertItem[];
+  total_active: number;
+  market_regime: string;
+}
+
+export interface AutoAlertsStatsResponse {
+  timestamp: string;
+  today_win_rate_pct: number;
+  total_calls_today: number;
+  targets_hit_today: number;
+  stopped_out_today: number;
+  total_net_profit_inr: number;
+  avg_profit_per_winning_trade: number;
+  recent_closed_alerts: AutoAlertItem[];
+}
+
 
 
 

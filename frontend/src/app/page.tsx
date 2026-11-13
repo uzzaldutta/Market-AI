@@ -13,6 +13,8 @@ import { MarketDepthView } from '../components/MarketDepthView';
 import { OptionsStrategyBuilderView } from '../components/OptionsStrategyBuilderView';
 import { FastAlphaRadarView } from '../components/FastAlphaRadarView';
 import { DailyRecommendationsView } from '../components/DailyRecommendationsView';
+import { LiveTradeAlertsView } from '../components/LiveTradeAlertsView';
+import { TradeAlertToast } from '../components/common/TradeAlertToast';
 import { ScreenerView } from '../components/ScreenerView';
 import { InstrumentDeepDiveView } from '../components/InstrumentDeepDiveView';
 import { OptionsAnalyticsView } from '../components/OptionsAnalyticsView';
@@ -21,8 +23,8 @@ import { BacktestLabView } from '../components/BacktestLabView';
 import { PaperTradingView } from '../components/PaperTradingView';
 import { NewsIntelligenceView } from '../components/NewsIntelligenceView';
 import { AdminHealthView } from '../components/AdminHealthView';
-import { fetchMarketOverview } from '../lib/api';
-import { MarketOverviewData } from '../types/market';
+import { fetchMarketOverview, fetchLiveAutoAlerts } from '../lib/api';
+import { MarketOverviewData, AutoAlertItem } from '../types/market';
 import { FavouritesProvider } from '../context/FavouritesContext';
 
 export default function TerminalHome() {
@@ -32,6 +34,8 @@ export default function TerminalHome() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [overviewData, setOverviewData] = useState<MarketOverviewData | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [toastAlert, setToastAlert] = useState<AutoAlertItem | null>(null);
+  const [toastDismissedId, setToastDismissedId] = useState<string | null>(null);
 
   // Poll overview every 15 seconds
   useEffect(() => {
@@ -51,6 +55,28 @@ export default function TerminalHome() {
       clearInterval(timer);
     };
   }, []);
+
+  // Real-time auto alert listener for floating screen toasts
+  useEffect(() => {
+    let active = true;
+    const checkAlerts = async () => {
+      try {
+        const res = await fetchLiveAutoAlerts();
+        const top = res.active_alerts?.[0];
+        if (top && top.alert_id !== toastDismissedId && active) {
+          setToastAlert(top);
+        }
+      } catch {
+        // Silent poll error
+      }
+    };
+    checkAlerts();
+    const alertInterval = setInterval(checkAlerts, 12000);
+    return () => {
+      active = false;
+      clearInterval(alertInterval);
+    };
+  }, [toastDismissedId]);
 
   const handleSelectSymbol = (sym: string) => {
     setSelectedSymbol(sym);
@@ -94,6 +120,12 @@ export default function TerminalHome() {
               <MarketOverviewView
                 data={overviewData}
                 onSelectSymbol={handleSelectSymbol}
+              />
+            )}
+
+            {activeTab === 'auto-alerts' && (
+              <LiveTradeAlertsView
+                onNavigateToPaperTrading={() => setActiveTab('paper')}
               />
             )}
 
@@ -195,6 +227,24 @@ export default function TerminalHome() {
             )}
           </main>
         </div>
+
+        {/* Real-Time Floating Auto Trade Alert Toast (Small Retail Desk) */}
+        {toastAlert && (
+          <TradeAlertToast
+            alert={toastAlert}
+            onClose={() => {
+              setToastDismissedId(toastAlert.alert_id);
+              setToastAlert(null);
+            }}
+            onNavigateToSignals={() => {
+              setActiveTab('auto-alerts');
+              setToastAlert(null);
+            }}
+            onTradeExecuted={() => {
+              setActiveTab('paper');
+            }}
+          />
+        )}
       </div>
     </FavouritesProvider>
   );

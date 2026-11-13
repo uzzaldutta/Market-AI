@@ -445,8 +445,10 @@ class PaperTradingEngine:
                 p_iv = None
 
                 if inst == "OPTIONS":
-                    s = pos.get("underlying_price") or pos.get("current_market_price", 1000.0)
-                    k = pos.get("strike_price") or s
+                    k = pos.get("strike_price") or 24500.0
+                    s = pos.get("underlying_price")
+                    if not s or (k and s < k * 0.3):
+                        s = k
                     opt_t = (pos.get("option_type") or "CE").upper()
                     t = 14.0 / 365.0 # near-term proxy (approx 14 days)
                     price = max(0.5, pos.get("current_market_price", 10.0))

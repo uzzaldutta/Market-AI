@@ -23,7 +23,8 @@ from ..schemas.market import (
     AlertsFeedResponse, WebhookTestRequest, WebhookTestResponse,
     ResearchDossierResponse, OptionStrategyRequest, OptionStrategyPayoffResponse,
     OrderBookDepthResponse, StrategyOptimizationRequest, StrategyOptimizationResponse,
-    PreTradeCheckRequest, PreTradeCheckResponse
+    PreTradeCheckRequest, PreTradeCheckResponse,
+    AutoAlertsResponse, AutoAlertsStatsResponse
 )
 from ..providers.manager import get_market_data_provider
 from ..core.nse_instruments import NSE_SYMBOL_INDEX, search_nse_instruments
@@ -54,6 +55,7 @@ from ..engine.strategy_builder import strategy_builder_engine
 from ..engine.orderbook_engine import orderbook_depth_engine
 from ..engine.optimizer_engine import strategy_optimizer_engine
 from ..engine.pretrade_engine import pretrade_engine
+from ..engine.auto_alert_engine import auto_alert_engine
 
 router = APIRouter()
 
@@ -458,6 +460,27 @@ def optimize_strategy_hyperparameters(req: StrategyOptimizationRequest):
 def run_pretrade_validation_gate(req: PreTradeCheckRequest):
     """Institutional pre-flight risk gate verifying 1% capital-at-risk, 1:2 R:R ratio, confluence, and exchange friction."""
     return pretrade_engine.validate_trade(req)
+
+@router.get("/auto-alerts/live", response_model=AutoAlertsResponse)
+def get_live_auto_alerts(
+    budget_tier: Optional[str] = Query(None, description="Filter by budget: UNDER_5K, UNDER_10K, UNDER_25K, CASH_STOCK"),
+    category: Optional[str] = Query(None, description="Filter by instrument category: INDEX_OPTION, STOCK_OPTION, CASH_EQUITY")
+):
+    """Real-time high-conviction trade alerts for small retail traders with best time/price zones."""
+    return auto_alert_engine.get_live_alerts(budget_tier=budget_tier, category=category)
+
+@router.get("/auto-alerts/stats", response_model=AutoAlertsStatsResponse)
+def get_auto_alerts_performance_stats():
+    """Historical and intraday transparency metrics (win rate %, ₹ net profit, targets hit)."""
+    return auto_alert_engine.get_performance_stats()
+
+@router.post("/auto-alerts/{alert_id}/paper-execute")
+def execute_auto_alert_in_paper(
+    alert_id: str,
+    lots: int = Query(1, description="Number of lots or default shares to execute")
+):
+    """1-Click direct execution of an automated trade alert into the virtual Paper Trading ledger."""
+    return auto_alert_engine.execute_in_paper_trading(alert_id=alert_id, lots=lots)
 
 @router.get("/health")
 def get_health_status():

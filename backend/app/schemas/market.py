@@ -942,6 +942,58 @@ class PreTradeCheckResponse(BaseModel):
     advisory_message: str
     timestamp: str
 
+# --- RETAIL AUTO-ALERT & SIMPLE RECOMMENDATION SCHEMAS ---
+class AutoAlertItem(BaseModel):
+    alert_id: str
+    headline: str
+    symbol: str
+    exchange: str = "NSE" # NSE or BSE
+    asset_name: str
+    contract_display: str
+    instrument_type: str # "INDEX_OPTION", "STOCK_OPTION", "CASH_EQUITY"
+    option_type: Optional[str] = None # "CE", "PE", None
+    strike_price: Optional[float] = None
+    expiry_date: Optional[str] = None
+    action: str = "BUY"
+    budget_tier: str # "UNDER_5K", "UNDER_10K", "UNDER_25K", "CASH_STOCK"
+    capital_required_inr: float
+    lot_size: int = 1
+    recommended_lots: int = 1
+    recommended_shares: Optional[int] = None
+    entry_price_min: float
+    entry_price_max: float
+    current_price: float
+    best_entry_time: str
+    order_valid_till: str
+    stop_loss_price: float
+    target_1_price: float
+    target_2_price: float
+    max_loss_inr: float
+    target_1_profit_inr: float
+    target_2_profit_inr: float
+    risk_reward_ratio: float
+    win_probability_pct: float
+    plain_english_reason: str
+    status: str # "IN_BUY_ZONE", "TRIGGERED", "TARGET_1_HIT", "TARGET_2_HIT", "STOPPED_OUT", "EXPIRED"
+    time_horizon: str = "INTRADAY" # "INTRADAY" or "SWING"
+    created_at: str
+
+class AutoAlertsResponse(BaseModel):
+    timestamp: str
+    active_alerts: List[AutoAlertItem]
+    total_active: int
+    market_regime: str
+
+class AutoAlertsStatsResponse(BaseModel):
+    timestamp: str
+    today_win_rate_pct: float
+    total_calls_today: int
+    targets_hit_today: int
+    stopped_out_today: int
+    total_net_profit_inr: float
+    avg_profit_per_winning_trade: float
+    recent_closed_alerts: List[AutoAlertItem]
+
 
 
 

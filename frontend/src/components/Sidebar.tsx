@@ -24,6 +24,7 @@ import {
 
 export type TabType =
   | 'overview'
+  | 'auto-alerts'
   | 'copilot'
   | 'oracle'
   | 'duel'
@@ -56,6 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const menuItems = [
     { id: 'overview', label: 'Market Overview', icon: LayoutDashboard },
+    { id: 'auto-alerts', label: '🎯 Auto Buy Signals (Retail Desk)', icon: Sparkles },
     { id: 'copilot', label: '🤖 AI Market Copilot', icon: Bot },
     { id: 'oracle', label: '🧠 Oracle AI Lab (Buffett)', icon: Brain },
     { id: 'duel', label: '⚔️ Stock Duel (Compare)', icon: Swords },
