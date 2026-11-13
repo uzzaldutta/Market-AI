@@ -77,7 +77,7 @@ export default function TerminalHome() {
         />
 
         {/* Real-Time Global Markets & Macro Ticker Strip */}
-        <GlobalTickerBar />
+        <GlobalTickerBar onSelectSymbol={handleSelectSymbol} />
 
         <div className="flex-1 flex overflow-hidden">
           {/* Navigation Sidebar (Desktop + Mobile Drawer + Bottom Nav) */}
