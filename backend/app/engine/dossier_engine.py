@@ -1,12 +1,12 @@
 import math
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from backend.app.schemas.market import (
+from ..schemas.market import (
     ResearchDossierResponse,
     PeerComparisonItem
 )
-from backend.app.engine.oracle_valuation import oracle_valuation_engine
-from backend.app.providers.manager import get_market_data_provider
+from .oracle_valuation import oracle_valuation_engine
+from ..providers.manager import get_market_data_provider
 
 class ResearchDossierEngine:
     """

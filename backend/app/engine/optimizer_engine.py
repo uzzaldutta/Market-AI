@@ -1,12 +1,12 @@
 import math
 from datetime import datetime
 from typing import List, Dict, Any
-from backend.app.schemas.market import (
+from ..schemas.market import (
     StrategyOptimizationRequest,
     OptimizationIterationResult,
     StrategyOptimizationResponse
 )
-from backend.app.providers.manager import get_market_data_provider
+from ..providers.manager import get_market_data_provider
 
 class StrategyOptimizerEngine:
     """
