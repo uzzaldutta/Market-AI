@@ -24,8 +24,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(api_router, prefix=settings.API_V1_STR)
-
 @app.get("/")
 def root():
     return {
@@ -34,6 +32,10 @@ def root():
         "docs": "/docs",
         "disclaimer": "Statutory Disclaimer: Market analysis and algorithmic signals are provided strictly for educational and simulation purposes and do not constitute SEBI-registered investment advice."
     }
+
+# Mount API endpoints at both /api/v1 (standard) and root / (fail-safe for clients omitting /api/v1)
+app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(api_router, prefix="")
 
 if __name__ == "__main__":
     import uvicorn

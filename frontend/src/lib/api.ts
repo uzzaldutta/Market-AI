@@ -23,7 +23,16 @@ import {
   UserSummaryItem
 } from '../types/market';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://market-ai-pf2c.onrender.com/api/v1';
+function getApiBase(): string {
+  let base = process.env.NEXT_PUBLIC_API_URL || 'https://market-ai-pf2c.onrender.com/api/v1';
+  base = base.trim().replace(/\/+$/, '');
+  if (!base.endsWith('/api/v1')) {
+    base = `${base}/api/v1`;
+  }
+  return base;
+}
+
+export const API_BASE = getApiBase();
 
 export async function fetchMarketOverview(): Promise<MarketOverviewData> {
   const res = await fetch(`${API_BASE}/overview`, { cache: 'no-store' });
