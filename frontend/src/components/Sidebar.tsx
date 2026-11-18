@@ -72,7 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'predictions', label: 'AI Predictions', icon: Cpu },
     { id: 'backtest', label: 'Backtesting Lab', icon: History },
     { id: 'paper', label: 'Paper Trading Simulator', icon: Wallet },
-    { id: 'news', label: 'News Intelligence', icon: Newspaper },
+    { id: 'news', label: 'News Catalyst Signals', icon: Newspaper },
     { id: 'admin', label: 'System Health', icon: Activity },
   ];
 

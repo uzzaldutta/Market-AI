@@ -269,6 +269,31 @@ export interface FavouriteItem {
   is_favourite: boolean;
 }
 
+export interface NewsCatalystTradeSetup {
+  setup_id: string;
+  symbol: string;
+  asset_name: string;
+  instrument_type: string;
+  contract_name: string;
+  direction: 'BUY' | 'SELL';
+  timeframe: string;
+  entry_price_range: string;
+  entry_price: number;
+  target_1: number;
+  target_1_pct: number;
+  target_2: number;
+  target_2_pct: number;
+  stop_loss: number;
+  stop_loss_pct: number;
+  risk_reward: string;
+  recommended_lots: number;
+  lot_size: number;
+  estimated_capital_required: number;
+  budget_tier: 'UNDER_5K' | 'UNDER_10K' | 'STANDARD' | 'HNI' | string;
+  catalyst_thesis: string;
+  confidence_score: number;
+}
+
 export interface NewsItem {
   id: string;
   headline: string;
@@ -281,6 +306,7 @@ export interface NewsItem {
   sentiment_score: number;
   affected_symbols: string[];
   impact_severity: string;
+  trade_catalyst?: NewsCatalystTradeSetup | null;
 }
 
 export interface NewsCatalyst {

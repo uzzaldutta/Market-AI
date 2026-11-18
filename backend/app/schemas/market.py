@@ -348,6 +348,30 @@ class ScreenerResponse(BaseModel):
     data: List[ScreenerRow]
 
 # --- NEWS & INTELLIGENCE SCHEMAS ---
+class NewsCatalystTradeSetup(BaseModel):
+    setup_id: str
+    symbol: str
+    asset_name: str
+    instrument_type: str  # CASH_EQUITY, STOCK_OPTION, INDEX_OPTION, FUTURES
+    contract_name: str    # e.g. "TCS 3600 CE (Weekly)" or "RELIANCE Shares"
+    direction: str        # BUY, SELL
+    timeframe: str        # INTRADAY_MOMENTUM, 1_3_DAYS_SWING
+    entry_price_range: str # e.g. "₹3,560 – ₹3,575"
+    entry_price: float
+    target_1: float
+    target_1_pct: float
+    target_2: float
+    target_2_pct: float
+    stop_loss: float
+    stop_loss_pct: float
+    risk_reward: str      # e.g. "2.8x"
+    recommended_lots: int
+    lot_size: int
+    estimated_capital_required: float # e.g. 4200.0 (under 5K)
+    budget_tier: str      # UNDER_5K, UNDER_10K, STANDARD, HNI
+    catalyst_thesis: str
+    confidence_score: float # 0 - 100
+
 class NewsItemResponse(BaseModel):
     id: str
     headline: str
@@ -360,6 +384,7 @@ class NewsItemResponse(BaseModel):
     sentiment_score: float
     affected_symbols: List[str]
     impact_severity: str
+    trade_catalyst: Optional[NewsCatalystTradeSetup] = None
 
 # --- FAVOURITES / WATCHLIST SCHEMAS ---
 class FavouriteToggleRequest(BaseModel):

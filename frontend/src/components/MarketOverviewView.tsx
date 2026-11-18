@@ -443,17 +443,18 @@ export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) =>
                     </div>
 
                     <div className="flex items-baseline justify-between pt-0.5">
-                      <div className="text-lg font-bold text-gray-100">
-                        {item.currency === '₹' ? '₹' : item.currency === 'USD' ? '$' : ''}
-                        {item.ltp.toLocaleString(undefined, {
-                          minimumFractionDigits: item.ltp < 100 ? 2 : 1,
-                          maximumFractionDigits: 2
-                        })}
-                        {item.currency === '%' ? '%' : ''}
-                      </div>
+                      <PriceFlash
+                        value={item.ltp}
+                        prefix={item.currency === '₹' ? '₹' : item.currency === 'USD' ? '$' : ''}
+                        suffix={item.currency === '%' ? '%' : ''}
+                        decimals={item.ltp < 100 ? 2 : 1}
+                        flashMode="cell"
+                        className="text-base font-bold text-gray-100"
+                        enableLiveSimulation={true}
+                      />
 
-                      <div className={`flex items-center text-xs font-semibold ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {isUp ? <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" /> : <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />}
+                      <div className={`flex items-center text-xs font-bold px-2 py-0.5 rounded-md font-mono ${isUp ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'}`}>
+                        <span className="mr-0.5">{isUp ? '▲' : '▼'}</span>
                         {isUp ? '+' : ''}{item.change_pct.toFixed(2)}%
                       </div>
                     </div>
@@ -559,8 +560,11 @@ export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) =>
                           enableLiveSimulation={true}
                         />
                       </td>
-                      <td className="py-2.5 text-right text-terminal-green font-semibold">
-                        +{stk.change_pct.toFixed(2)}%
+                      <td className="py-2.5 text-right text-terminal-green font-bold">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                          <span className="text-[10px]">▲</span>
+                          +{stk.change_pct.toFixed(2)}%
+                        </span>
                       </td>
                       <td className="py-2.5 text-right text-gray-400">{(stk.volume / 1000).toFixed(0)}k</td>
                     </tr>
@@ -622,8 +626,11 @@ export const MarketOverviewView: React.FC<Props> = ({ data, onSelectSymbol }) =>
                           enableLiveSimulation={true}
                         />
                       </td>
-                      <td className="py-2.5 text-right text-terminal-red font-semibold">
-                        {stk.change_pct.toFixed(2)}%
+                      <td className="py-2.5 text-right text-terminal-red font-bold">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                          <span className="text-[10px]">▼</span>
+                          {stk.change_pct.toFixed(2)}%
+                        </span>
                       </td>
                       <td className="py-2.5 text-right text-gray-400">{(stk.volume / 1000).toFixed(0)}k</td>
                     </tr>

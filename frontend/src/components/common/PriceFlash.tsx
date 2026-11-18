@@ -32,6 +32,7 @@ export const PriceFlash: React.FC<PriceFlashProps> = ({
 }) => {
   const [currentVal, setCurrentVal] = useState<number>(value);
   const [direction, setDirection] = useState<FlashDirection>('none');
+  const [lastTickDir, setLastTickDir] = useState<FlashDirection>('up');
   const prevValRef = useRef<number>(value);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -41,36 +42,41 @@ export const PriceFlash: React.FC<PriceFlashProps> = ({
       const dir: FlashDirection = value > prevValRef.current ? 'up' : value < prevValRef.current ? 'down' : 'none';
       prevValRef.current = value;
       setCurrentVal(value);
-      setDirection(dir);
+      if (dir !== 'none') {
+        setDirection(dir);
+        setLastTickDir(dir);
+      }
 
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         setDirection('none');
-      }, 750);
+      }, 600);
     }
   }, [value]);
 
-  // Optional micro-tick oscillation for visual feedback during closed market sessions
+  // High-performance micro-tick oscillation for institutional live terminal feel
   useEffect(() => {
     if (!enableLiveSimulation) return;
 
     const interval = setInterval(() => {
-      // 30% chance every 4-6 seconds of a small micro-tick fluctuation (e.g. +/- 0.05% to 0.15%)
-      if (Math.random() > 0.65) {
+      // 50% probability every 2.8 seconds of a realistic micro-tick tick
+      if (Math.random() > 0.45) {
         const isUp = Math.random() > 0.48;
-        const delta = (currentVal * (0.0005 + Math.random() * 0.001)) * (isUp ? 1 : -1);
-        const nextVal = Math.round((currentVal + delta) * 100) / 100;
+        const tickDelta = (currentVal * (0.0003 + Math.random() * 0.0008)) * (isUp ? 1 : -1);
+        const nextVal = Math.round((currentVal + tickDelta) * 100) / 100;
         
-        setDirection(isUp ? 'up' : 'down');
+        const dir: FlashDirection = isUp ? 'up' : 'down';
+        setDirection(dir);
+        setLastTickDir(dir);
         setCurrentVal(nextVal);
         prevValRef.current = nextVal;
 
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => {
           setDirection('none');
-        }, 750);
+        }, 600);
       }
-    }, 4500);
+    }, 2800);
 
     return () => clearInterval(interval);
   }, [enableLiveSimulation, currentVal]);
@@ -83,20 +89,25 @@ export const PriceFlash: React.FC<PriceFlashProps> = ({
   if (flashMode === 'badge') {
     const flashBg =
       direction === 'up'
-        ? 'bg-emerald-500/25 text-emerald-300 border-emerald-500/50 shadow-sm shadow-emerald-500/30'
+        ? 'bg-emerald-500/25 text-emerald-300 border-emerald-400/60 shadow-md shadow-emerald-500/30 scale-[1.02]'
         : direction === 'down'
-        ? 'bg-rose-500/25 text-rose-300 border-rose-500/50 shadow-sm shadow-rose-500/30'
-        : 'bg-terminal-dark/80 text-white border-terminal-border';
+        ? 'bg-rose-500/25 text-rose-300 border-rose-400/60 shadow-md shadow-rose-500/30 scale-[1.02]'
+        : 'bg-terminal-dark/80 text-white border-terminal-border/80';
 
     return (
       <span
-        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono transition-all duration-500 ease-out border ${flashBg} ${badgeClassName}`}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-mono transition-all duration-300 ease-out border ${flashBg} ${badgeClassName}`}
       >
-        {showArrow && direction === 'up' && (
-          <span className="text-[10px] text-emerald-400 font-bold animate-pulse">▲</span>
-        )}
-        {showArrow && direction === 'down' && (
-          <span className="text-[10px] text-rose-400 font-bold animate-pulse">▼</span>
+        {showArrow && (
+          <span
+            className={`text-xs font-black transition-transform duration-200 ${
+              direction === 'up' || (direction === 'none' && lastTickDir === 'up')
+                ? 'text-emerald-400'
+                : 'text-rose-400'
+            } ${direction !== 'none' ? 'scale-125' : ''}`}
+          >
+            {direction === 'up' || (direction === 'none' && lastTickDir === 'up') ? '▲' : '▼'}
+          </span>
         )}
         <span className={className}>
           {prefix}{formattedValue}{suffix}
@@ -105,24 +116,29 @@ export const PriceFlash: React.FC<PriceFlashProps> = ({
     );
   }
 
-  // Cell flash mode (used in tables and option chains)
+  // Cell flash mode (used in tables, watchlists and grids)
   const cellFlashClasses =
     direction === 'up'
-      ? 'bg-emerald-500/20 text-emerald-300 font-bold ring-1 ring-emerald-500/40 shadow-inner'
+      ? 'bg-emerald-500/25 text-emerald-300 font-bold ring-1 ring-emerald-400/50 shadow-inner'
       : direction === 'down'
-      ? 'bg-rose-500/20 text-rose-300 font-bold ring-1 ring-rose-500/40 shadow-inner'
+      ? 'bg-rose-500/25 text-rose-300 font-bold ring-1 ring-rose-400/50 shadow-inner'
       : 'text-inherit';
 
   return (
     <span
-      className={`inline-block px-1.5 py-0.5 rounded font-mono transition-all duration-700 ease-out ${cellFlashClasses} ${className}`}
+      className={`inline-block px-1.5 py-0.5 rounded font-mono transition-all duration-300 ease-out ${cellFlashClasses} ${className}`}
     >
-      <span className="inline-flex items-center gap-0.5">
-        {showArrow && direction === 'up' && (
-          <span className="text-[9px] text-emerald-400 font-bold">▲</span>
-        )}
-        {showArrow && direction === 'down' && (
-          <span className="text-[9px] text-rose-400 font-bold">▼</span>
+      <span className="inline-flex items-center gap-1">
+        {showArrow && (
+          <span
+            className={`text-[10px] font-black transition-transform duration-200 ${
+              direction === 'up' || (direction === 'none' && lastTickDir === 'up')
+                ? 'text-emerald-400'
+                : 'text-rose-400'
+            } ${direction !== 'none' ? 'scale-125' : ''}`}
+          >
+            {direction === 'up' || (direction === 'none' && lastTickDir === 'up') ? '▲' : '▼'}
+          </span>
         )}
         <span>{prefix}{formattedValue}{suffix}</span>
       </span>
